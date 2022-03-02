@@ -43,6 +43,7 @@ class KeyBindings:
         keycode = event.keycode
         if keycode == 52:
             print("Z (Left)")
+            self.bot.moveWaistLeft()
         elif keycode == 54:
             print("C (Right)")
 

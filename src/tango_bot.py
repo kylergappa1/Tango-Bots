@@ -8,6 +8,7 @@ class TangBotController:
     # properties
     usb : serial.Serial = None
     cmd = None
+    WAIST_VAL = 5896
 
     # constructor
     def __init__(self):
@@ -29,5 +30,9 @@ class TangBotController:
             self.usb.write(command)
         else:
             log.critical('Unable to write to USB - USB not connected')
+    
+    def moveWaistLeft(self):
+        self.WAIST_VAL += 200
+        # TODO: write update to USB
 
 # END
