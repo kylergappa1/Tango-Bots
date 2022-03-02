@@ -6,9 +6,15 @@ from .log import log
 class TangBotController:
 
     # properties
-    usb : serial.Serial = None
-    cmd = None
-    WAIST_VAL = 5896
+    usb:serial.Serial   = None
+    cmd                 = None
+    TARGET_CENTER:int   = 5896
+    WAIST_VAL:int       = TARGET_CENTER
+    HEAD_TILT_VAL:int   = TARGET_CENTER     # This is the up/down value
+    HEAD_TURN_VAL:int   = TARGET_CENTER     # This is the left/right value
+    LEFT_MOTOR:int      = 0                 # This is the current speed of the motor
+    RIGHT_MOTOR:int     = 0                 # This is the current speed of the motor
+    SPEED:int           = 200               # This is the current update to the motor
 
     # constructor
     def __init__(self):
@@ -30,9 +36,29 @@ class TangBotController:
             self.usb.write(command)
         else:
             log.critical('Unable to write to USB - USB not connected')
-    
+
     def moveWaistLeft(self):
-        self.WAIST_VAL += 200
+        self.WAIST_VAL += self.SPEED
+        # TODO: write update to USB
+
+    def moveWaistRight(self):
+        self.WAIST_VAL -= self.SPEED
+        # TODO: write update to USB
+
+    def moveHeadUp(self):
+        self.HEAD_TILT_VAL += self.SPEED  # Check that this moves up not down
+        # TODO: write update to USB
+
+    def moveHeadDown(self):
+        self.HEAD_TILT_VAL -= self.SPEED  # Check that this moves down not up
+        # TODO: write update to USB
+
+    def moveHeadLeft(self):
+        self.HEAD_TURN_VAL += self.SPEED  # Check that this moves left not right
+        # TODO: write update to USB
+
+    def moveHeadRight(self):
+        self.HEAD_TURN_VAL -= self.SPEED  # Check that this moves right not left
         # TODO: write update to USB
 
 # END
