@@ -7,3 +7,11 @@
 *__pycache__/
 # python2
 *.pyc
+
+# IDE Project Files ===========================================================
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
