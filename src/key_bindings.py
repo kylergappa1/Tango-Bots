@@ -3,12 +3,13 @@
 import tkinter as tk
 from .tango_bot import TangBotController
 from .log import log
+import threading, sys
 
 class KeyBindings:
 
     # properties
-    win : tk.Tk = None
-    bot: TangBotController = None
+    win:tk.Tk                   = None
+    bot:TangBotController       = None
 
     # constructor
     def __init__(self, bot:TangBotController):
@@ -29,10 +30,25 @@ class KeyBindings:
         self.win.bind('<1>', self.speed)        # key code: 49
         self.win.bind('<2>', self.speed)        # key code: 50
         self.win.bind('<3>', self.speed)        # key code: 51
-        # start tkinter window
-        self.win.mainloop()
 
-    def arrows(self, event):
+        def run(win:tk.Tk):
+            try:
+                win.mainloop()
+            except RuntimeError:
+                log.debug('Calling Tcl from different apartment')
+
+        self.thread = threading.Thread(name="KeyBindings", target=run, args=[self.win], daemon=True)
+
+    def stop(self, event=None):
+        try:
+            self.win.destroy()
+            log.debug('KeyBindings: tkinter window destroyed.')
+        except tk.TclError:
+            log.debug('KeyBindings::stop() - Can\'t invoke "destroy" command: application has been destroyed')
+        self.bot.stop()
+        sys.exit(0)
+
+    def arrows(self, event=None):
         keycode = event.keycode
         if keycode == 111:
             log.debug('Key Pressed: "%s"', 'Up')
@@ -45,7 +61,7 @@ class KeyBindings:
         elif keycode == 114:
             log.debug('Key Pressed: "%s"', 'Right')
 
-    def waist(self, event):
+    def waist(self, event=None):
         keycode = event.keycode
         if keycode == 52:
             log.debug('Key Pressed: "%s"', '<Z>')
@@ -54,7 +70,7 @@ class KeyBindings:
             log.debug('Key Pressed: "%s"', '<C>')
             self.bot.moveWaistRight()
 
-    def head(self, event):
+    def head(self, event=None):
         keycode = event.keycode
         if keycode == 25:
             log.debug('Key Pressed: "%s"', '<W>')
@@ -80,8 +96,5 @@ class KeyBindings:
         if keycode == 49:
             log.debug('Key Pressed: "%s"', '<3>')
             self.bot.SPEED = 100
-
-    def stop(self, event=None):
-        self.win.destroy()
 
 # END
