@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from .tango_bot import TangBotController
+from .log import log
 
 class KeyBindings:
 
@@ -34,48 +35,48 @@ class KeyBindings:
     def arrows(self, event):
         keycode = event.keycode
         if keycode == 111:
-            print("Up Arrow")
+            log.debug('Key Pressed: "%s"', 'Up')
         elif keycode == 116:
-            print("Down Arrow")
+            log.debug('Key Pressed: "%s"', 'Down')
         elif keycode == 113:
-            print("Left Arrow")
+            log.debug('Key Pressed: "%s"', 'Left')
         elif keycode == 114:
-            print("Right Arrow")
+            log.debug('Key Pressed: "%s"', 'Right')
 
     def waist(self, event):
         keycode = event.keycode
         if keycode == 52:
-            print("Z (Left)")
+            log.debug('Key Pressed: "%s"', '<Z>')
             self.bot.moveWaistLeft()
         elif keycode == 54:
-            print("C (Right)")
+            log.debug('Key Pressed: "%s"', '<C>')
             self.bot.moveWaistRight()
 
     def head(self, event):
         keycode = event.keycode
         if keycode == 25:
-            print("Head Up")
+            log.debug('Key Pressed: "%s"', '<W>')
             self.bot.moveHeadUp()
         elif keycode == 39:
-            print("Head Down")
+            log.debug('Key Pressed: "%s"', '<S>')
             self.bot.moveHeadDown()
         elif keycode == 38:
-            print("Head Left")
+            log.debug('Key Pressed: "%s"', '<A>')
             self.bot.moveHeadLeft()
         elif keycode == 40:
-            print("Head Right")
+            log.debug('Key Pressed: "%s"', '<D>')
             self.bot.moveHeadRight()
 
     def speed(self, event):
         keycode = event.keycode
         if keycode == 51:
-            print("Sprinting")
+            log.debug('Key Pressed: "%s"', '<1>')
             self.bot.SPEED = 400
         if keycode == 50:
-            print("Walking")
+            log.debug('Key Pressed: "%s"', '<2>')
             self.bot.SPEED = 200
         if keycode == 49:
-            print("Crawling")
+            log.debug('Key Pressed: "%s"', '<3>')
             self.bot.SPEED = 100
 
     def stop(self, event=None):
