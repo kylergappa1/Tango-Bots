@@ -36,8 +36,10 @@ class KeyBindings:
         keycode = event.keycode
         if keycode == 111:
             log.debug('Key Pressed: "%s"', 'Up')
+            self.bot.increaseWheelSpeed()
         elif keycode == 116:
             log.debug('Key Pressed: "%s"', 'Down')
+            self.bot.decreaseWheelSpeed()
         elif keycode == 113:
             log.debug('Key Pressed: "%s"', 'Left')
         elif keycode == 114:
