@@ -31,6 +31,7 @@
 | Backwards | <kbd>Down</kbd> |
 | Turn Left | <kbd>Left</kbd> |
 | Turn Right | <kbd>Right</kbd> |
+| Stop | <kbd>q</kbd> |
 
 ## Speech2Text
 
