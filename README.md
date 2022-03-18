@@ -35,6 +35,14 @@
 | Turn Right | <kbd>Right</kbd> |
 | Stop | <kbd>q</kbd> |
 
+#### Speed
+
+| Action | Key |
+| :-- | :--: |
+| Speed level one: `100` | <kbd>j</kbd> |
+| Speed level two: `500` | <kbd>k</kbd> |
+| Speed level three: `800` | <kbd>l</kbd> |
+
 ## Speech2Text
 
 ### Setup Steps
