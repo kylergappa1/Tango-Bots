@@ -89,6 +89,15 @@ class TangBotController:
     def setSpeed(self, speed: int):
         self.SPEED = speed
 
+    def setSpeedLevelOne(self):
+        self.setSpeed(100)
+
+    def setSpeedLevelTwo(self):
+        self.setSpeed(500)
+
+    def setSpeedLevelThree(self):
+        self.setSpeed(800)
+
     def stopMoving(self):
         # print('Trying to stop motors')
         self.writeCmd(BotServos.RightWheel.value, self.SPEED_START)

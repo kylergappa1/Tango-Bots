@@ -18,6 +18,9 @@ KEY_BINDING_DICTIONARY = {
     '<z>': 'moveWaistLeft',
     '<x>': 'centerWaist',
     '<c>': 'moveWaistRight',
+    '<j>': 'setSpeedLevelOne',
+    '<k>': 'setSpeedLevelTwo',
+    '<l>': 'setSpeedLevelThree',
 }
 
 def makeKeyBindingFnc(fnc_name: str, bot_attr: Function):
