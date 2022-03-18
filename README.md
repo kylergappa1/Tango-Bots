@@ -2,6 +2,36 @@
 
 > CSCI-455: Embedded Systems (Robotics) - Spring 2022 @ Montana State University
 
+## tkinter App
+
+### Key Bindings
+
+#### Head
+
+| Action | Key |
+| :-- | :--: |
+| Move head up | <kbd>w</kbd> |
+| Move head down | <kbd>s</kbd> |
+| Pan head left | <kbd>a</kbd> |
+| Pan head right | <kbd>d</kbd> |
+
+#### Waist
+
+| Action | Key |
+| :-- | :--: |
+| Rotate left | <kbd>z</kbd> |
+| Rotate right | <kbd>c</kbd> |
+| Center waist | <kbd>x</kbd> |
+
+#### Wheels
+
+| Action | Key |
+| :-- | :--: |
+| Forward | <kbd>Up</kbd> |
+| Backwards | <kbd>Down</kbd> |
+| Turn Left | <kbd>Left</kbd> |
+| Turn Right | <kbd>Right</kbd> |
+
 ## Speech2Text
 
 ### Setup Steps
