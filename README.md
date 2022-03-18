@@ -6,6 +6,8 @@
 
 ### Key Bindings
 
+<kbd>space</kbd> will kill the running app and stop the robot.
+
 #### Head
 
 | Action | Key |
