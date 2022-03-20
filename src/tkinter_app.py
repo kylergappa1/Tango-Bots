@@ -1,6 +1,5 @@
 # tkinter_app
 
-from pyclbr import Function
 import tkinter as tk
 from tkinter import ttk
 from .tango_bot import TangBotController
@@ -23,7 +22,7 @@ KEY_BINDING_DICTIONARY = {
     '<l>': 'setSpeedLevelThree',
 }
 
-def makeKeyBindingFnc(fnc_name: str, bot_attr: Function):
+def makeKeyBindingFnc(fnc_name: str, bot_attr):
     def fnc(event: tk.Event):
         key = event.keysym
         print("Key Pressed: {} - {}".format(key, fnc_name))
