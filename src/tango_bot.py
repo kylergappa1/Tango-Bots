@@ -58,7 +58,22 @@ class TangBotController:
 
     """Getters and Setters
 
+    The setter methods are used to condense the necesity to write to the USB each time a servo motor value is changed.
+    By creatings setter methods for the servo motor values, when a value is update the change is written to the USD.
 
+    Servo Motor Values:
+    -------------------
+    "HEAD_TILT"     - This is the up/down positioning for the head servo
+
+    "HEAD_TURN"     - This is the left/right positioning for the head servo
+
+    "WAIST"         - Left/Right positioning for the body/waist servo motor
+
+    "WHEEL_SPEED"   - This value is used for the left and right wheel servos.
+                      Note: This value is ony manipulated when going forwards and backwards. See trunLeft() and turnRight() for more details
+
+    "DIRECTION_STATE" - Maintains the active wheel movement operation of the robot. This is necessary because when the robot changes states, for example from Forwards to Backwards, the wheel_speed needs to be centered.
+    When changing the DIRECTION_STATE, if the new state is different from the current, the WHEEL_SPEED is centered (i.e. when this happens, the value is also written to the USD)
 
     """
 
