@@ -10,7 +10,7 @@ PHRASE_BOT_DICT = {
     'head down': 'moveHeadDown',
     'head left': 'moveHeadLeft',
     'head right': 'moveHeadRight',
-    'head center': 'headCenter',
+    'head center': 'centerHead',
     'body left': 'moveWaistLeft',
     'body right': 'moveWaistRight',
     'body center': 'centerWaist',
