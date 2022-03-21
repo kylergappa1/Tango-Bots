@@ -107,6 +107,10 @@ class TangBotController:
     def moveHeadRight(self):
         self.HEAD_TURN -= self.SPEED
 
+    def centerHead(self):
+        self.HEAD_TURN = self.TARGET_CENTER
+        self.HEAD_TILT = self.TARGET_CENTER
+
     """
     WAIST Movement Methods
     """
