@@ -36,7 +36,11 @@ class TangBotController:
 
     # constructor
     def __init__(self):
+        # Fetch the serial USB
         self.usb = getUSB()
+        # Exit Safe Start. Note: something I found online
+        if self.usb is not None: # TODO: see if we need this
+            self.usb.write(chr(0x83).encode())
         # center all of the servo motors
         self.centerHead()       # Centers the HEAD_TILT and HEAD_PAN
         self.centerWaist()      # Centers the WAIST
