@@ -23,22 +23,23 @@ class DirectionState(Enum):
 class TangBotController:
 
     usb: serial.Serial
-    _DIRECTION_STATE: DirectionState = None
     TARGET_CENTER: int  = 5896
     SPEED: int          = 300       # This is the current update to the motor
     SPEED_CEILING: int  = 7500      # Upper limit for wheel speed
     SPEED_FLOOR: int    = 4500      # Lower limit for wheel speed
-    _HEAD_TILT: int = TARGET_CENTER # This is the up/down value
-    _HEAD_TURN: int = TARGET_CENTER # This is the left/right value
-    _WAIST: int = TARGET_CENTER
-    _WHEEL_SPEED: int = TARGET_CENTER
+    _HEAD_TILT: int                 # This is the up/down value
+    _HEAD_TURN: int                 # This is the left/right value
+    _WAIST: int                     # This is the left/right value for the (body) waist
+    _WHEEL_SPEED: int               # Speed of the forward/backward movement
+    _DIRECTION_STATE: DirectionState
 
     # constructor
     def __init__(self):
         self.usb = getUSB()
-        self.centerHead()
-        self.centerWaist()
-        self.WHEEL_SPEED = self.TARGET_CENTER
+        # center all of the servo motors
+        self.centerHead()       # Centers the HEAD_TILT and HEAD_PAN
+        self.centerWaist()      # Centers the WAIST
+        self.stop()             # Centers the WHEEL_SPEED
 
     def writeCmd(self, bot_servo: BotServos, target: int = TARGET_CENTER):
         # Build command
