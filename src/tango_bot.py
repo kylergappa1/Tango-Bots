@@ -55,12 +55,16 @@ class TangBotController:
         else:
             log.debug('Unable to write to USB - USB not connected')
 
+    """Getters and Setters
+
+
+
+    """
+
     def stop(self):
         self.WHEEL_SPEED = self.TARGET_CENTER
 
-    """
-    Speed Movement Methods
-    """
+    """Speed Movement Methods"""
 
     def setSpeed(self, speed: int):
         self.SPEED = speed
@@ -74,9 +78,7 @@ class TangBotController:
     def setSpeedLevelThree(self):
         self.setSpeed(800)
 
-    """
-    HEAD Movement Methods
-    """
+    """HEAD Movement Methods"""
 
     @property
     def HEAD_TILT(self) -> int:
@@ -114,9 +116,7 @@ class TangBotController:
         self.HEAD_TURN = self.TARGET_CENTER
         self.HEAD_TILT = self.TARGET_CENTER
 
-    """
-    WAIST Movement Methods
-    """
+    """WAIST Movement Methods"""
 
     @property
     def WAIST(self) -> int:
@@ -137,9 +137,7 @@ class TangBotController:
     def moveWaistRight(self):
         self.WAIST -= self.SPEED
 
-    """
-    WHEEL Movement Methods
-    """
+    """WHEEL Movement Methods"""
 
     @property
     def WHEEL_SPEED(self) -> int:
