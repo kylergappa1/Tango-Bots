@@ -173,13 +173,13 @@ class TangBotController:
         self.SPEED = speed
 
     def setSpeedLevelOne(self):
-        self.setSpeed(300)
-
-    def setSpeedLevelTwo(self):
         self.setSpeed(500)
 
-    def setSpeedLevelThree(self):
+    def setSpeedLevelTwo(self):
         self.setSpeed(800)
+
+    def setSpeedLevelThree(self):
+        self.setSpeed(1000)
 
     """HEAD Movement Methods"""
 
