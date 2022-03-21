@@ -90,7 +90,11 @@ class TangBotController:
 
     @HEAD_TILT.setter
     def HEAD_TILT(self, val: int):
-        # TODO: validate the upper and lower limits for the HEAD_TILT value
+        # Validate head tilt value
+        if val < 4000:
+            val = 4000
+        elif val > 7500:
+            val = 7500
         self._HEAD_TILT = val
         log.debug('Set HEAD_TILT: %s', self.HEAD_TILT)
         self.writeCmd(BotServos.HeadTilt, self.HEAD_TILT)
@@ -102,7 +106,11 @@ class TangBotController:
 
     @HEAD_TURN.setter
     def HEAD_TURN(self, val: int):
-        # TODO: validate the upper and lower limits for the HEAD_TURN value
+        # Validate head turn value
+        if val < 4000:
+            val = 4000
+        elif val > 7500:
+            val = 7500
         self._HEAD_TURN = val
         log.debug('Set HEAD_TURN: %s', self.HEAD_TURN)
         self.writeCmd(BotServos.HeadPan, self.HEAD_TURN)
@@ -208,12 +216,14 @@ class TangBotController:
 
     def turnLeft(self):
         self.DIRECTION_STATE = DirectionState.LeftTurn
-        self.writeCmd(BotServos.RightWheel, 7400)
+        self.writeCmd(BotServos.RightWheel, 7500)
+        sleep(.3)
         self.stop()
 
     def turnRight(self):
         self.DIRECTION_STATE = DirectionState.RightTurn
         self.writeCmd(BotServos.RightWheel, 4600)
+        sleep(.3)
         self.stop()
 
 # END
