@@ -18,7 +18,10 @@ PHRASE_BOT_DICT = {
     'reverse': 'decreaseWheelSpeed',
     'turn left': 'turnLeft',
     'turn right': 'turnRight',
-    'stop': 'stop'
+    'stop': 'stop',
+    'speed one': 'setSpeedLevelOne',
+    'speed two': 'setSpeedLevelTwo',
+    'speed three': 'setSpeedLevelThree',
 }
 
 class Speech2Text:
