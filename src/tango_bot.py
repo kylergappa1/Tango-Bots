@@ -84,6 +84,7 @@ class TangBotController:
 
     @HEAD_TILT.setter
     def HEAD_TILT(self, val: int):
+        # TODO: validate the upper and lower limits for the HEAD_TILT value
         self._HEAD_TILT = val
         log.debug('Set HEAD_TILT: %s', self.HEAD_TILT)
         self.writeCmd(BotServos.HeadTilt, self.HEAD_TILT)
@@ -95,6 +96,7 @@ class TangBotController:
 
     @HEAD_TURN.setter
     def HEAD_TURN(self, val: int):
+        # TODO: validate the upper and lower limits for the HEAD_TURN value
         self._HEAD_TURN = val
         log.debug('Set HEAD_TURN: %s', self.HEAD_TURN)
         self.writeCmd(BotServos.HeadPan, self.HEAD_TURN)
@@ -106,6 +108,7 @@ class TangBotController:
 
     @WAIST.setter
     def WAIST(self, val: int):
+        # TODO: validate the upper and lower limits for the WAIST value
         self._WAIST = val
         log.debug('Set WAIST: %s', self.WAIST)
         self.writeCmd(BotServos.Waist, self.WAIST)
