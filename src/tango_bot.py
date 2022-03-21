@@ -61,25 +61,7 @@ class TangBotController:
 
     """
 
-    def stop(self):
-        self.WHEEL_SPEED = self.TARGET_CENTER
-
-    """Speed Movement Methods"""
-
-    def setSpeed(self, speed: int):
-        self.SPEED = speed
-
-    def setSpeedLevelOne(self):
-        self.setSpeed(300)
-
-    def setSpeedLevelTwo(self):
-        self.setSpeed(500)
-
-    def setSpeedLevelThree(self):
-        self.setSpeed(800)
-
-    """HEAD Movement Methods"""
-
+    # HEAD_TILT
     @property
     def HEAD_TILT(self) -> int:
         return self._HEAD_TILT
@@ -90,12 +72,7 @@ class TangBotController:
         log.debug('Set HEAD_TILT: %s', self.HEAD_TILT)
         self.writeCmd(BotServos.HeadTilt, self.HEAD_TILT)
 
-    def moveHeadUp(self):
-        self.HEAD_TILT += self.SPEED
-
-    def moveHeadDown(self):
-        self.HEAD_TILT -= self.SPEED
-
+    # HEAD_TRUN
     @property
     def HEAD_TURN(self) -> int:
         return self._HEAD_TURN
@@ -106,18 +83,7 @@ class TangBotController:
         log.debug('Set HEAD_TURN: %s', self.HEAD_TURN)
         self.writeCmd(BotServos.HeadPan, self.HEAD_TURN)
 
-    def moveHeadLeft(self):
-        self.HEAD_TURN += self.SPEED
-
-    def moveHeadRight(self):
-        self.HEAD_TURN -= self.SPEED
-
-    def centerHead(self):
-        self.HEAD_TURN = self.TARGET_CENTER
-        self.HEAD_TILT = self.TARGET_CENTER
-
-    """WAIST Movement Methods"""
-
+    # WAIST
     @property
     def WAIST(self) -> int:
         return self._WAIST
@@ -128,17 +94,7 @@ class TangBotController:
         log.debug('Set WAIST: %s', self.WAIST)
         self.writeCmd(BotServos.Waist, self.WAIST)
 
-    def centerWaist(self):
-        self.WAIST = self.TARGET_CENTER
-
-    def moveWaistLeft(self):
-        self.WAIST += self.SPEED
-
-    def moveWaistRight(self):
-        self.WAIST -= self.SPEED
-
-    """WHEEL Movement Methods"""
-
+    # WHEEL_SPEED
     @property
     def WHEEL_SPEED(self) -> int:
         return self._WHEEL_SPEED
@@ -157,6 +113,7 @@ class TangBotController:
         self.writeCmd(BotServos.RightWheel, self.WHEEL_SPEED)
         self.writeCmd(BotServos.LeftWheel, self.WHEEL_SPEED)
 
+    # DIRECTION_STATE
     @property
     def DIRECTION_STATE(self):
         return self._DIRECTION_STATE
@@ -166,6 +123,54 @@ class TangBotController:
         if isinstance(val, DirectionState) and isinstance(self._DIRECTION_STATE, DirectionState) and self._DIRECTION_STATE != val:
             self.WHEEL_SPEED = self.TARGET_CENTER
         self._DIRECTION_STATE = val
+
+    """Speed Movement Methods"""
+
+    def stop(self):
+        self.WHEEL_SPEED = self.TARGET_CENTER
+
+    def setSpeed(self, speed: int):
+        self.SPEED = speed
+
+    def setSpeedLevelOne(self):
+        self.setSpeed(300)
+
+    def setSpeedLevelTwo(self):
+        self.setSpeed(500)
+
+    def setSpeedLevelThree(self):
+        self.setSpeed(800)
+
+    """HEAD Movement Methods"""
+
+    def moveHeadUp(self):
+        self.HEAD_TILT += self.SPEED
+
+    def moveHeadDown(self):
+        self.HEAD_TILT -= self.SPEED
+
+    def moveHeadLeft(self):
+        self.HEAD_TURN += self.SPEED
+
+    def moveHeadRight(self):
+        self.HEAD_TURN -= self.SPEED
+
+    def centerHead(self):
+        self.HEAD_TURN = self.TARGET_CENTER
+        self.HEAD_TILT = self.TARGET_CENTER
+
+    """WAIST Movement Methods"""
+
+    def centerWaist(self):
+        self.WAIST = self.TARGET_CENTER
+
+    def moveWaistLeft(self):
+        self.WAIST += self.SPEED
+
+    def moveWaistRight(self):
+        self.WAIST -= self.SPEED
+
+    """WHEEL Movement Methods"""
 
     def increaseWheelSpeed(self):
         self.DIRECTION_STATE = DirectionState.Forwards
