@@ -9,7 +9,7 @@ Spring 2022
 import sys
 import argparse
 from src import Speech2Text
-from src import App
+from src import TkinterApp
 from src import TangBotController
 
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         s2t = Speech2Text(bot)
         s2t.start()
     elif args.app == 'tkinter-app':
-        tk_app = App(bot)
+        tk_app = TkinterApp(bot)
         tk_app.mainloop()
 
 # END main.py

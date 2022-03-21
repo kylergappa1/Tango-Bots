@@ -31,7 +31,7 @@ def makeKeyBindingFnc(bot_attr):
         bot_attr()
     return fnc
 
-class App(tk.Tk):
+class TkinterApp(tk.Tk):
 
     bot: TangBotController
 
