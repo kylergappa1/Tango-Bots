@@ -36,6 +36,9 @@ class TangBotController:
     # constructor
     def __init__(self):
         self.usb = getUSB()
+        self.centerHead()
+        self.centerWaist()
+        self.WHEEL_SPEED = self.TARGET_CENTER
 
     def writeCmd(self, bot_servo: BotServos, target: int = TARGET_CENTER):
         # Build command
