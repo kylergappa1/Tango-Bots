@@ -174,9 +174,11 @@ class TangBotController:
     def turnLeft(self):
         self.DIRECTION_STATE = DirectionState.LeftTurn
         self.writeCmd(BotServos.RightWheel, 7400)
+        self.stop()
 
     def turnRight(self):
         self.DIRECTION_STATE = DirectionState.RightTurn
         self.writeCmd(BotServos.RightWheel, 4600)
+        self.stop()
 
 # END
