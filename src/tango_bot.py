@@ -8,8 +8,6 @@ from enum import Enum
 from time import sleep
 
 class BotServos(Enum):
-    LeftWheel = 0x00
-    RightWheel = 0x01
     WheelTogether = 0x00
     WheelTurning = 0x01
     Waist = 0x02
@@ -175,13 +173,13 @@ class TangBotController:
         self.SPEED = speed
 
     def setSpeedLevelOne(self):
-        self.setSpeed(300)
-
-    def setSpeedLevelTwo(self):
         self.setSpeed(500)
 
-    def setSpeedLevelThree(self):
+    def setSpeedLevelTwo(self):
         self.setSpeed(800)
+
+    def setSpeedLevelThree(self):
+        self.setSpeed(1000)
 
     """HEAD Movement Methods"""
 
