@@ -14,7 +14,7 @@ PHRASE_BOT_DICT = {
     'body left': 'moveWaistLeft',
     'body right': 'moveWaistRight',
     'body center': 'centerWaist',
-    'straight': 'increaseWheelSpeed',
+    'forward': 'increaseWheelSpeed',
     'reverse': 'decreaseWheelSpeed',
     'turn left': 'turnLeft',
     'turn right': 'turnRight',
@@ -48,9 +48,9 @@ class Speech2Text:
         # from the microphone
         try:
             with self.microphone as source:
-                self.recognizer.adjust_for_ambient_noise(source)
+                self.recognizer.adjust_for_ambient_noise(source, 0.5)
                 print("Listening...")
-                audio = self.recognizer.listen(source, timeout=2, phrase_time_limit=2)
+                audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=2)
         except sr.WaitTimeoutError:
             return None
         # try recognizing the speech in the recording
@@ -71,10 +71,12 @@ class Speech2Text:
         while True:
             if self.running is False: 
                 break
-            transcription = self.recognize_speech_from_mic()
+            transcription: str = self.recognize_speech_from_mic()
             if transcription is None: 
                 continue
             log.info("Transcription: %s", transcription)
+            transcription = transcription.lower()
+            print("Converted: ", transcription)
             # call TangoBot method based on phrase transcription
             if transcription not in PHRASE_BOT_DICT.keys(): 
                 continue
