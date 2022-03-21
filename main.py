@@ -25,6 +25,8 @@ if __name__ == "__main__":
         s2t.start()
     elif args.app == 'tkinter-app':
         tk_app = TkinterApp(bot)
+        tk_app.update_idletasks()
+        tk_app.update()
         tk_app.mainloop()
 
 # END main.py

@@ -53,33 +53,48 @@ class HeadControlsFrame(ttk.Frame):
         center_button = ttk.Button(self, text="Center")
         center_button.grid(column=1, row=1)
 
-        # self.pack()
+class WaistControlsFrame(ttk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
 
+        left_button = ttk.Button(self, text="Left")
+        left_button.grid(column=0, row=1)
+
+        right_button = ttk.Button(self, text="Right")
+        right_button.grid(column=2, row=1)
+
+        center_button = ttk.Button(self, text="Center")
+        center_button.grid(column=1, row=1)
 
 class MainFrame(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
-
         options = {'padx': 5, 'pady': 5}
-
         # label
-        self.label = ttk.Label(self, text='Head')
-        self.label.pack(**options)
-
+        # self.label = ttk.Label(self, text='Head')
+        # self.label.pack(**options)
         # button
-        self.button = ttk.Button(self, text='Click Me')
-        self.button['command'] = self.button_clicked
-        self.button.pack(**options)
+        # self.button = ttk.Button(self, text='Click Me')
+        # self.button['command'] = self.button_clicked
+        # self.button.pack(**options)
+
+        head_ctrl_con = ttk.Frame(self)
+        head_ctrl_label = ttk.Label(head_ctrl_con, text='Head')
+        head_ctrl_label.grid(column=0, row=0, sticky=tk.W)
+        head_ctrl_frame = HeadControlsFrame(head_ctrl_con)
+        head_ctrl_frame.grid(column=0, row=1)
+        head_ctrl_con.grid(column=0, row=0)
+
+
+        waist_ctrl_con = ttk.Frame(self)
+        waist_ctrl_label = ttk.Label(waist_ctrl_con, text='Waist')
+        waist_ctrl_label.grid(column=0, row=0, sticky=tk.W)
+        waist_ctrl_frame = WaistControlsFrame(waist_ctrl_con)
+        waist_ctrl_frame.grid(column=0, row=1)
+        waist_ctrl_con.grid(column=0, row=1)
 
         # show the frame on the container
         self.pack(**options)
-
-
-        head_ctrl_label = ttk.Label(self, text='Head')
-        head_ctrl_label.pack()
-        
-        head_ctrl_frame = HeadControlsFrame(self)
-        head_ctrl_frame.pack()
 
     def button_clicked(self):
         showinfo(title='Information',
