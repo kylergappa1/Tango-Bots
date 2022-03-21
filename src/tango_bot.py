@@ -25,15 +25,15 @@ class TangBotController:
 
     usb: serial.Serial
     usb_write_timeout: int = 0.2    # sleep() time after each write to the serial USB
-    TARGET_CENTER: int  = 5896
-    SPEED: int          = 300       # This is the current update to the motor
+    TARGET_CENTER: int  = 5950
+    SPEED: int          = 500       # This is the current update to the motor
     SPEED_CEILING: int  = 7500      # Upper limit for wheel speed
     SPEED_FLOOR: int    = 4500      # Lower limit for wheel speed
     _HEAD_TILT: int                 # This is the up/down value
     _HEAD_TURN: int                 # This is the left/right value
     _WAIST: int                     # This is the left/right value for the (body) waist
     _WHEEL_SPEED: int               # Speed of the forward/backward movement
-    _DIRECTION_STATE: DirectionState
+    _DIRECTION_STATE: DirectionState = None
 
     # constructor
     def __init__(self):
@@ -145,7 +145,7 @@ class TangBotController:
 
     @DIRECTION_STATE.setter
     def DIRECTION_STATE(self, val: DirectionState):
-        if isinstance(val, DirectionState) and isinstance(self._DIRECTION_STATE, DirectionState) and self._DIRECTION_STATE != val:
+        if isinstance(val, DirectionState) and isinstance(self.DIRECTION_STATE, DirectionState) and self.DIRECTION_STATE != val:
             self.WHEEL_SPEED = self.TARGET_CENTER
         self._DIRECTION_STATE = val
 
