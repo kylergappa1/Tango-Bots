@@ -122,7 +122,10 @@ class TangBotController:
 
     @WAIST.setter
     def WAIST(self, val: int):
-        # TODO: validate the upper and lower limits for the WAIST value
+        if val < 4000:
+            val = 4000
+        elif val > 7500:
+            val = 7500
         self._WAIST = val
         log.debug('Set WAIST: %s', self.WAIST)
         self.writeCmd(BotServos.Waist, self.WAIST)
