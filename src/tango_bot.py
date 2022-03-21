@@ -1,96 +1,181 @@
 # tango_bot.py
 
-import threading
-import time
-from enum import Enum
-
 from .log import log
-from .usb import serial, getUSB
-
+from .log import log_method_call
+from .usb import serial
+from .usb import getUSB
+from enum import Enum
+from time import sleep
 
 class BotServos(Enum):
     LeftWheel = 0x00
     RightWheel = 0x01
+    WheelTogether = 0x00
+    WheelTurning = 0x01
     Waist = 0x02
     HeadPan = 0x03
     HeadTilt = 0x04
 
+class DirectionState(Enum):
+    Forwards = 'Forwards'
+    Backwards = 'Backwards'
+    LeftTurn = 'Left Turn'
+    RightTurn = 'Right Turn'
 
 class TangBotController:
+    """Object Oriented Implementation of the Tango Bot"""
 
-    # properties
-    usb: serial.Serial   = None
-    cmd                 = None
-    TARGET_CENTER: int   = 5896
-    SPEED_START: int     = 6000              # No Motor Movement ????
-    WAIST_VAL: int       = TARGET_CENTER
-    HEAD_TILT_VAL: int   = TARGET_CENTER     # This is the up/down value
-    HEAD_TURN_VAL: int   = TARGET_CENTER     # This is the left/right value
-    LEFT_MOTOR: int      = TARGET_CENTER     # This is the current speed of the motor
-    RIGHT_MOTOR: int     = TARGET_CENTER     # This is the current speed of the motor
-    WHEEL_SPEED: int     = SPEED_START       # When the robot is going forward/backward, the wheel speed is the same
-    SPEED: int           = 300               # This is the current update to the motor
-    SPEED_CEILING: int   = 7500              # Upper limit for wheel speed
-    SPEED_FLOOR: int     = 4500              # Lower limit for wheel speed
-    
-
-    running:bool        = None
-    lock:threading.Lock = None
-
-    direction_state = None
-    turning_timeout = 2
-    turning_left = None
-    turning_left_start_time = None
-    turning_right = None
-    turning_right_start_time = None
+    usb: serial.Serial
+    usb_write_timeout: int = 0.2    # sleep() time after each write to the serial USB
+    TARGET_CENTER: int  = 5950
+    SPEED: int          = 500       # This is the current update to the motor
+    SPEED_CEILING: int  = 7500      # Upper limit for wheel speed
+    SPEED_FLOOR: int    = 4500      # Lower limit for wheel speed
+    _HEAD_TILT: int                 # This is the up/down value
+    _HEAD_TURN: int                 # This is the left/right value
+    _WAIST: int                     # This is the left/right value for the (body) waist
+    _WHEEL_SPEED: int               # Speed of the forward/backward movement
+    _DIRECTION_STATE: DirectionState = DirectionState.Forwards
 
     # constructor
     def __init__(self):
+        # Fetch the serial USB
         self.usb = getUSB()
-        # if self.usb is not None:
-        #     self.usb.write_timeout = 0.5  # TEST THIS
-        self.running = True
-        self.lock = threading.Lock()
-        # Exit Safe Start
-        # Note: something I found online
-        # TODO: see if we need this
-        if self.usb is not None:
+        # Exit Safe Start. Note: something I found online
+        if self.usb is not None: # TODO: see if we need this
             self.usb.write(chr(0x83).encode())
+        # center all of the servo motors
+        self.centerHead()       # Centers the HEAD_TILT and HEAD_PAN
+        self.centerWaist()      # Centers the WAIST
+        self.stop()             # Centers the WHEEL_SPEED
 
-        self.writeCmd(BotServos.RightWheel.value, self.SPEED_START)
-        self.writeCmd(BotServos.LeftWheel.value, self.SPEED_START)
-        # center waist
-        time.sleep(.5)
-        self.writeCmd(BotServos.Waist.value, self.TARGET_CENTER)
-        time.sleep(.5)
-        self.writeCmd(BotServos.HeadTilt.value, self.TARGET_CENTER)
-        time.sleep(.5)
-        self.writeCmd(BotServos.HeadPan.value, self.TARGET_CENTER)
-
-    # Stop the robot
-    def stop(self):
-        self.running = False
-        self.stopMoving()
-
-    def writeCmd(self, chr_val, target: int = TARGET_CENTER):
+    def writeCmd(self, bot_servo: BotServos, target: int = TARGET_CENTER):
         # Build command
         lsb = target & 0x7F
         msb = (target >> 7) & 0x7F
-        self.cmd = chr(0xaa) + chr(0xC) + chr(0x04) + chr(chr_val) + chr(lsb) + chr(msb)
-        command = self.cmd.encode('utf-8')
-        log.debug('Writing USB Command: "%s"', command)
+        servo_chr = bot_servo.value
+        cmd = chr(0xaa) + chr(0xC) + chr(0x04) + chr(servo_chr) + chr(lsb) + chr(msb)
+        command = cmd.encode('utf-8')
         # Check if usb is not None
         if self.usb is not None:
+            log.debug('Writing USB Command: "%s"', command)
             self.usb.write(command)
+            sleep(self.usb_write_timeout)
         else:
-            log.critical('Unable to write to USB - USB not connected')
+            log.debug('Unable to write to USB - USB not connected')
 
-    # write out command to usb
+    """Getters and Setters
+
+    The setter methods are used to condense the necesity to write to the USB each time a servo motor value is changed.
+    By creatings setter methods for the servo motor values, when a value is update the change is written to the USD.
+
+    Servo Motor Values:
+    -------------------
+    "HEAD_TILT"     - This is the up/down positioning for the head servo
+
+    "HEAD_TURN"     - This is the left/right positioning for the head servo
+
+    "WAIST"         - Left/Right positioning for the body/waist servo motor
+
+    "WHEEL_SPEED"   - This value is used for the left and right wheel servos.
+                      Note: This value is ony manipulated when going forwards and backwards. See trunLeft() and turnRight() for more details
+
+    "DIRECTION_STATE" - Maintains the active wheel movement operation of the robot. This is necessary because when the robot changes states, for example from Forwards to Backwards, the wheel_speed needs to be centered.
+    When changing the DIRECTION_STATE, if the new state is different from the current, the WHEEL_SPEED is centered (i.e. when this happens, the value is also written to the USD)
+
+    """
+
+    # HEAD_TILT
+    @property
+    def HEAD_TILT(self) -> int:
+        return self._HEAD_TILT
+
+    @HEAD_TILT.setter
+    def HEAD_TILT(self, val: int):
+        # Validate head tilt value
+        if val < 4000:
+            val = 4000
+        elif val > 7500:
+            val = 7500
+        self._HEAD_TILT = val
+        log.debug('Set HEAD_TILT: %s', self.HEAD_TILT)
+        self.writeCmd(BotServos.HeadTilt, self.HEAD_TILT)
+
+    # HEAD_TRUN
+    @property
+    def HEAD_TURN(self) -> int:
+        return self._HEAD_TURN
+
+    @HEAD_TURN.setter
+    def HEAD_TURN(self, val: int):
+        # Validate head turn value
+        if val < 4000:
+            val = 4000
+        elif val > 7500:
+            val = 7500
+        self._HEAD_TURN = val
+        log.debug('Set HEAD_TURN: %s', self.HEAD_TURN)
+        self.writeCmd(BotServos.HeadPan, self.HEAD_TURN)
+
+    # WAIST
+    @property
+    def WAIST(self) -> int:
+        return self._WAIST
+
+    @WAIST.setter
+    def WAIST(self, val: int):
+        if val < 4000:
+            val = 4000
+        elif val > 7500:
+            val = 7500
+        self._WAIST = val
+        log.debug('Set WAIST: %s', self.WAIST)
+        self.writeCmd(BotServos.Waist, self.WAIST)
+
+    # WHEEL_SPEED
+    @property
+    def WHEEL_SPEED(self) -> int:
+        return self._WHEEL_SPEED
+
+    @WHEEL_SPEED.setter
+    def WHEEL_SPEED(self, val: int):
+        # make sure wheel speed does not exceed the upper/lower limit
+        if val < self.SPEED_FLOOR:
+            # set wheel speed to upper limit for wheels
+            val = self.SPEED_FLOOR
+        elif val > self.SPEED_CEILING:
+            # set wheel speed to lower limit for wheels
+            val = self.SPEED_CEILING
+        self._WHEEL_SPEED = val
+        log.debug('Set WHEEL_SPEED: %s', self.WHEEL_SPEED)
+        if self.DIRECTION_STATE is DirectionState.Forwards or self.DIRECTION_STATE is DirectionState.Backwards:
+            self.writeCmd(BotServos.WheelTogether, self.WHEEL_SPEED)
+        elif self.DIRECTION_STATE is DirectionState.LeftTurn or self.DIRECTION_STATE is DirectionState.RightTurn:
+            self.writeCmd(BotServos.WheelTurning, self.WHEEL_SPEED)
+
+    # DIRECTION_STATE
+    @property
+    def DIRECTION_STATE(self):
+        return self._DIRECTION_STATE
+
+    @DIRECTION_STATE.setter
+    def DIRECTION_STATE(self, val: DirectionState):
+        self._DIRECTION_STATE = val
+        if isinstance(val, DirectionState) and isinstance(self.DIRECTION_STATE, DirectionState) and self.DIRECTION_STATE != val:
+            self.WHEEL_SPEED = self.TARGET_CENTER
+
+    """Speed Movement Methods"""
+
+    def stop(self):
+        self.WHEEL_SPEED = self.TARGET_CENTER
+        self.writeCmd(BotServos.WheelTogether, self.WHEEL_SPEED)
+
+
     def setSpeed(self, speed: int):
         self.SPEED = speed
 
     def setSpeedLevelOne(self):
-        self.setSpeed(100)
+        self.setSpeed(300)
 
     def setSpeedLevelTwo(self):
         self.setSpeed(500)
@@ -98,153 +183,57 @@ class TangBotController:
     def setSpeedLevelThree(self):
         self.setSpeed(800)
 
-    def stopMoving(self):
-        # print('Trying to stop motors')
-        self.writeCmd(BotServos.RightWheel.value, self.SPEED_START)
-        self.writeCmd(BotServos.LeftWheel.value, self.SPEED_START)
-
-    def moveWaistLeft(self):
-        self.WAIST_VAL += self.SPEED
-        log.debug('Move Waist Left - Value: "%s"', self.WAIST_VAL)
-        self.writeCmd(BotServos.Waist.value, self.WAIST_VAL)
-        time.sleep(.2)
-
-    def moveWaistRight(self):
-        self.WAIST_VAL -= self.SPEED
-        log.debug('Move Waist Right - Value: "%s"', self.WAIST_VAL)
-        self.writeCmd(BotServos.Waist.value, self.WAIST_VAL)
-
-    def centerWaist(self):
-        self.WAIST_VAL = self.TARGET_CENTER
-        log.debug('Center - Value: "%s"', self.WAIST_VAL)
-        self.writeCmd(BotServos.Waist.value, self.WAIST_VAL)
-
+    """HEAD Movement Methods"""
 
     def moveHeadUp(self):
-        self.HEAD_TILT_VAL += self.SPEED
-        log.debug('Move Head Up - Value: "%s"', self.HEAD_TILT_VAL)
-        self.writeCmd(BotServos.HeadTilt.value, self.HEAD_TILT_VAL)
-        time.sleep(.2)
+        self.HEAD_TILT += self.SPEED
 
     def moveHeadDown(self):
-        self.HEAD_TILT_VAL -= self.SPEED
-        log.debug('Move Head Down - Value: "%s"', self.HEAD_TILT_VAL)
-        self.writeCmd(BotServos.HeadTilt.value, self.HEAD_TILT_VAL)
-        time.sleep(.2)
+        self.HEAD_TILT -= self.SPEED
 
     def moveHeadLeft(self):
-        self.HEAD_TURN_VAL += self.SPEED
-        log.debug('Move Head Left - Value: "%s"', self.HEAD_TURN_VAL)
-        self.writeCmd(BotServos.HeadPan.value, self.HEAD_TURN_VAL)
-        time.sleep(.2)
+        self.HEAD_TURN += self.SPEED
 
     def moveHeadRight(self):
-        self.HEAD_TURN_VAL -= self.SPEED
-        log.debug('Move Head Right - Value: "%s"', self.HEAD_TURN_VAL)
-        self.writeCmd(BotServos.HeadPan.value, self.HEAD_TURN_VAL)
-        time.sleep(.2)
+        self.HEAD_TURN -= self.SPEED
+
+    def centerHead(self):
+        self.HEAD_TURN = self.TARGET_CENTER
+        self.HEAD_TILT = self.TARGET_CENTER
+
+    """WAIST Movement Methods"""
+
+    def centerWaist(self):
+        self.WAIST = self.TARGET_CENTER
+
+    def moveWaistLeft(self):
+        self.WAIST += self.SPEED
+
+    def moveWaistRight(self):
+        self.WAIST -= self.SPEED
+
+    """WHEEL Movement Methods"""
 
     def increaseWheelSpeed(self):
-
-        if self.direction_state != 'f':
-            self.stopMoving()
-            self.WHEEL_SPEED = self.SPEED_START
-        self.direction_state = 'f'
-
-
+        self.DIRECTION_STATE = DirectionState.Forwards
         self.WHEEL_SPEED -= self.SPEED
-        # make sure wheel speed does not exceed the upper limit
-        if self.WHEEL_SPEED < self.SPEED_FLOOR:
-            # set wheel speed to lower limit for wheels
-            self.WHEEL_SPEED = self.SPEED_FLOOR
-        # Reset robot to make sure it doesn't confuse itself
-        # self.writeCmd(BotServos.RightWheel.value, 6000)
-        # self.writeCmd(BotServos.LeftWheel.value, 6000)
-        # time.sleep(.2)  # Forces robot to finish clearing itself, so it doesn't write incorrectly
-        self.writeCmd(BotServos.RightWheel.value, self.WHEEL_SPEED)
-        self.writeCmd(BotServos.LeftWheel.value, self.WHEEL_SPEED)
-        # time.sleep(.2)
 
     def decreaseWheelSpeed(self):
-
-        if self.direction_state != 'b':
-            self.stopMoving()
-            self.WHEEL_SPEED = self.SPEED_START
-        self.direction_state = 'b'
-
+        self.DIRECTION_STATE = DirectionState.Backwards
         self.WHEEL_SPEED += self.SPEED
-        # make sure wheel speed does not exceed the lower limit
-        if self.WHEEL_SPEED > self.SPEED_CEILING:
-            # set wheel speed to upper limit for wheels
-            self.WHEEL_SPEED = self.SPEED_CEILING
-        # Reset motors to make sure it doesn't confuse itself
-        # self.writeCmd(BotServos.RightWheel.value, 6000)
-        # self.writeCmd(BotServos.LeftWheel.value, 6000)
-        # time.sleep(0.5)  # Forces robot to finish clearing itself, so it doesn't write incorrectly
-#        self.writeCmd(BotServos.RightWheel.value, self.WHEEL_SPEED)
-        self.writeCmd(BotServos.LeftWheel.value, self.WHEEL_SPEED)
-        # time.sleep(.2)
 
     def turnLeft(self):
-        if self.direction_state != 'l':
-            self.stopMoving()
-            self.WHEEL_SPEED = self.SPEED_START
-        self.direction_state = 'l'
-        # make sure wheel speed does not exceed the upper limit
-        if self.WHEEL_SPEED - self.SPEED < self.SPEED_FLOOR:
-            # set wheel speed to lower limit for wheels
-            self.WHEEL_SPEED = self.SPEED_FLOOR
-        if self.WHEEL_SPEED + self.SPEED > self.SPEED_CEILING:
-            # set wheel speed to upper limit for wheels
-            self.WHEEL_SPEED = self.SPEED_CEILING
-        # self.writeCmd(BotServos.RightWheel.value, 6000)
-        # self.writeCmd(BotServos.LeftWheel.value, 6000)
-        # time.sleep(.2)
-        self.writeCmd(BotServos.RightWheel.value, 7400)
-        time.sleep(.2)
-        self.stopMoving()
-        # time.sleep(.2)
-#        self.writeCmd(BotServos.LeftWheel.value,  7000)  # self.WHEEL_SPEED + self.SPEED)
+        self.DIRECTION_STATE = DirectionState.LeftTurn
+        self.WHEEL_SPEED = 7500
+        # self.writeCmd(BotServos.RightWheel, 7500)
+        sleep(.3)
+        self.stop()
 
     def turnRight(self):
-        if self.direction_state != 'r':
-            self.stopMoving()
-            self.WHEEL_SPEED = self.SPEED_START
-        self.direction_state = 'r'
+        self.DIRECTION_STATE = DirectionState.RightTurn
+        self.WHEEL_SPEED = 4500
+        # self.writeCmd(BotServos.RightWheel, 4600)
+        sleep(.3)
+        self.stop()
 
-
-        self.writeCmd(BotServos.RightWheel.value, 4600)
-        time.sleep(.2)
-        self.stopMoving()
-
-        return
-
-        self.stopMoving()
-        self.turning_right = True
-        self.turning_right_start_time = time.time()
-
-        while self.turning_right_start_time + self.turning_timeout > time.time():
-            self.writeCmd(BotServos.RightWheel.value, 5000)
-            time.sleep(.2)
-            self.stopMoving()
-        return
-
-
-
-        # make sure wheel speed does not exceed the lower limit
-        if self.WHEEL_SPEED - self.SPEED < self.SPEED_FLOOR:
-            # set wheel speed to lower limit for wheels
-            self.WHEEL_SPEED = self.SPEED_FLOOR
-        if self.WHEEL_SPEED + self.SPEED > self.SPEED_CEILING:
-            # set wheel speed to upper limit for wheels
-            self.WHEEL_SPEED = self.SPEED_CEILING
-        # self.writeCmd(BotServos.RightWheel.value, 6000)
-        # self.writeCmd(BotServos.LeftWheel.value, 6000)
-        # time.sleep(.2)
-        while True:
-            self.writeCmd(BotServos.RightWheel.value, 5000)
-        time.sleep(.2)
-        self.stopMoving()
-        # time.sleep(.2)
-#        self.writeCmd(BotServos.LeftWheel.value, 7000)
 # END

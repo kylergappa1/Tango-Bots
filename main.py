@@ -7,10 +7,26 @@ Spring 2022
 """
 
 import sys
-from src import App
+import argparse
+from src import Speech2Text
+from src import TkinterApp
+from src import TangBotController
 
-app = App()
-app.mainloop()
-sys.exit(0)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Tango Bots')
+    parser.add_argument('app', help='Application', type=str, choices=['tkinter-app', 'speech2text'])
+    args = parser.parse_args()
+
+    bot = TangBotController()
+
+    if args.app == 'speech2text':
+        s2t = Speech2Text(bot)
+        s2t.start()
+    elif args.app == 'tkinter-app':
+        tk_app = TkinterApp(bot)
+        tk_app.update_idletasks()
+        tk_app.update()
+        tk_app.mainloop()
 
 # END main.py
