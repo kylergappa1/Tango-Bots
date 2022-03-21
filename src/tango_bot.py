@@ -5,6 +5,7 @@ from .log import log_method_call
 from .usb import serial
 from .usb import getUSB
 from enum import Enum
+from time import sleep
 
 class BotServos(Enum):
     LeftWheel = 0x00
@@ -13,9 +14,16 @@ class BotServos(Enum):
     HeadPan = 0x03
     HeadTilt = 0x04
 
+class DirectionState(Enum):
+    Forwards = 'Forwards'
+    Backwards = 'Backwards'
+    LeftTurn = 'Left Turn'
+    RightTurn = 'Right Turn'
+
 class TangBotController:
 
-    usb: serial.Serial  = None
+    usb: serial.Serial
+    _DIRECTION_STATE: DirectionState = None
     TARGET_CENTER: int  = 5896
     SPEED: int          = 300       # This is the current update to the motor
     SPEED_CEILING: int  = 7500      # Upper limit for wheel speed
@@ -27,7 +35,7 @@ class TangBotController:
 
     # constructor
     def __init__(self):
-        self.usb = None
+        self.usb = getUSB()
 
     def writeCmd(self, bot_servo: BotServos, target: int = TARGET_CENTER):
         # Build command
@@ -40,6 +48,7 @@ class TangBotController:
         if self.usb is not None:
             log.debug('Writing USB Command: "%s"', command)
             self.usb.write(command)
+            sleep(0.2)
         else:
             log.debug('Unable to write to USB - USB not connected')
 
@@ -143,19 +152,31 @@ class TangBotController:
         self.writeCmd(BotServos.RightWheel, self.WHEEL_SPEED)
         self.writeCmd(BotServos.LeftWheel, self.WHEEL_SPEED)
 
+    @property
+    def DIRECTION_STATE(self):
+        return self._DIRECTION_STATE
+
+    @DIRECTION_STATE.setter
+    def DIRECTION_STATE(self, val: DirectionState):
+        if isinstance(val, DirectionState) and isinstance(self._DIRECTION_STATE, DirectionState) and self._DIRECTION_STATE != val:
+            self.WHEEL_SPEED = self.TARGET_CENTER
+        self._DIRECTION_STATE = val
+
     def increaseWheelSpeed(self):
+        self.DIRECTION_STATE = DirectionState.Forwards
         self.WHEEL_SPEED -= self.SPEED
 
     def decreaseWheelSpeed(self):
+        self.DIRECTION_STATE = DirectionState.Backwards
         self.WHEEL_SPEED += self.SPEED
         self.writeCmd(BotServos.LeftWheel, self.WHEEL_SPEED)
 
     def turnLeft(self):
-        self.WHEEL_SPEED = self.TARGET_CENTER # this should center the wheel servo motors (same as calling stop)
+        self.DIRECTION_STATE = DirectionState.LeftTurn
         self.writeCmd(BotServos.RightWheel, 7400)
 
     def turnRight(self):
-        self.WHEEL_SPEED = self.TARGET_CENTER # this should center the wheel servo motors (same as calling stop)
+        self.DIRECTION_STATE = DirectionState.RightTurn
         self.writeCmd(BotServos.RightWheel, 4600)
 
 # END
