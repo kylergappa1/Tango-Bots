@@ -21,6 +21,7 @@ class DirectionState(Enum):
     RightTurn = 'Right Turn'
 
 class TangBotController:
+    """Object Oriented Implementation of the Tango Bot"""
 
     usb: serial.Serial
     TARGET_CENTER: int  = 5896
