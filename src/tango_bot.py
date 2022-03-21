@@ -10,6 +10,8 @@ from time import sleep
 class BotServos(Enum):
     LeftWheel = 0x00
     RightWheel = 0x01
+    WheelTogether = 0x00
+    WheelTurning = 0x01
     Waist = 0x02
     HeadPan = 0x03
     HeadTilt = 0x04
@@ -33,7 +35,7 @@ class TangBotController:
     _HEAD_TURN: int                 # This is the left/right value
     _WAIST: int                     # This is the left/right value for the (body) waist
     _WHEEL_SPEED: int               # Speed of the forward/backward movement
-    _DIRECTION_STATE: DirectionState = None
+    _DIRECTION_STATE: DirectionState = DirectionState.Forwards
 
     # constructor
     def __init__(self):
@@ -146,8 +148,10 @@ class TangBotController:
             val = self.SPEED_CEILING
         self._WHEEL_SPEED = val
         log.debug('Set WHEEL_SPEED: %s', self.WHEEL_SPEED)
-        self.writeCmd(BotServos.RightWheel, self.WHEEL_SPEED)
-        self.writeCmd(BotServos.LeftWheel, self.WHEEL_SPEED)
+        if self.DIRECTION_STATE is DirectionState.Forwards or self.DIRECTION_STATE is DirectionState.Backwards:
+            self.writeCmd(BotServos.WheelTogether, self.WHEEL_SPEED)
+        elif self.DIRECTION_STATE is DirectionState.LeftTurn or self.DIRECTION_STATE is DirectionState.RightTurn:
+            self.writeCmd(BotServos.WheelTurning, self.WHEEL_SPEED)
 
     # DIRECTION_STATE
     @property
@@ -156,14 +160,16 @@ class TangBotController:
 
     @DIRECTION_STATE.setter
     def DIRECTION_STATE(self, val: DirectionState):
+        self._DIRECTION_STATE = val
         if isinstance(val, DirectionState) and isinstance(self.DIRECTION_STATE, DirectionState) and self.DIRECTION_STATE != val:
             self.WHEEL_SPEED = self.TARGET_CENTER
-        self._DIRECTION_STATE = val
 
     """Speed Movement Methods"""
 
     def stop(self):
         self.WHEEL_SPEED = self.TARGET_CENTER
+        self.writeCmd(BotServos.WheelTogether, self.WHEEL_SPEED)
+
 
     def setSpeed(self, speed: int):
         self.SPEED = speed
@@ -215,17 +221,18 @@ class TangBotController:
     def decreaseWheelSpeed(self):
         self.DIRECTION_STATE = DirectionState.Backwards
         self.WHEEL_SPEED += self.SPEED
-        self.writeCmd(BotServos.LeftWheel, self.WHEEL_SPEED)
 
     def turnLeft(self):
         self.DIRECTION_STATE = DirectionState.LeftTurn
-        self.writeCmd(BotServos.RightWheel, 7500)
+        self.WHEEL_SPEED = 7500
+        # self.writeCmd(BotServos.RightWheel, 7500)
         sleep(.3)
         self.stop()
 
     def turnRight(self):
         self.DIRECTION_STATE = DirectionState.RightTurn
-        self.writeCmd(BotServos.RightWheel, 4600)
+        self.WHEEL_SPEED = 4500
+        # self.writeCmd(BotServos.RightWheel, 4600)
         sleep(.3)
         self.stop()
 
