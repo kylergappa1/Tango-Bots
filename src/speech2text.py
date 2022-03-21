@@ -87,9 +87,13 @@ class Speech2Text:
     def start(self):
         self.running = True
         self.audio_recognizing_thread.start()
-        while True:
-            if self.running is False: 
-                break
+        try:
+            while True:
+                if self.running is False: break
+        except:
+            print()
+            pass
+        self.bot.stop()
         self.running = False
         self.audio_recognizing_thread.join()
 
