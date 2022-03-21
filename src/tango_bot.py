@@ -24,6 +24,7 @@ class TangBotController:
     """Object Oriented Implementation of the Tango Bot"""
 
     usb: serial.Serial
+    usb_write_timeout: int = 0.2    # sleep() time after each write to the serial USB
     TARGET_CENTER: int  = 5896
     SPEED: int          = 300       # This is the current update to the motor
     SPEED_CEILING: int  = 7500      # Upper limit for wheel speed
@@ -57,7 +58,7 @@ class TangBotController:
         if self.usb is not None:
             log.debug('Writing USB Command: "%s"', command)
             self.usb.write(command)
-            sleep(0.2)
+            sleep(self.usb_write_timeout)
         else:
             log.debug('Unable to write to USB - USB not connected')
 
