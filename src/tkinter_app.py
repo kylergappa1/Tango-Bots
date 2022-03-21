@@ -2,6 +2,8 @@
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter.messagebox import showinfo
+from turtle import down
 from .tango_bot import TangBotController
 from .log import log
 
@@ -31,6 +33,58 @@ def makeKeyBindingFnc(bot_attr):
         bot_attr()
     return fnc
 
+
+class HeadControlsFrame(ttk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
+
+        up_button = ttk.Button(self, text="Up")
+        up_button.grid(column=1, row=0)
+
+        down_button = ttk.Button(self, text="Down")
+        down_button.grid(column=1,row=2)
+
+        left_button = ttk.Button(self, text="Left")
+        left_button.grid(column=0, row=1)
+
+        right_button = ttk.Button(self, text="Right")
+        right_button.grid(column=2, row=1)
+
+        center_button = ttk.Button(self, text="Center")
+        center_button.grid(column=1, row=1)
+
+        # self.pack()
+
+
+class MainFrame(ttk.Frame):
+    def __init__(self, container):
+        super().__init__(container)
+
+        options = {'padx': 5, 'pady': 5}
+
+        # label
+        self.label = ttk.Label(self, text='Head')
+        self.label.pack(**options)
+
+        # button
+        self.button = ttk.Button(self, text='Click Me')
+        self.button['command'] = self.button_clicked
+        self.button.pack(**options)
+
+        # show the frame on the container
+        self.pack(**options)
+
+
+        head_ctrl_label = ttk.Label(self, text='Head')
+        head_ctrl_label.pack()
+        
+        head_ctrl_frame = HeadControlsFrame(self)
+        head_ctrl_frame.pack()
+
+    def button_clicked(self):
+        showinfo(title='Information',
+                 message='Hello, Tkinter!')
+
 class TkinterApp(tk.Tk):
 
     bot: TangBotController
@@ -47,7 +101,8 @@ class TkinterApp(tk.Tk):
         self.style.configure('.', font=('Helvetica', 12))
         # key bindings
         self.__setup_key_bindings()
-
+        # main frame
+        self.main_frame = MainFrame(self)
 
     def stop(self, event: tk.Event = None):
         try:
