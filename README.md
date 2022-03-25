@@ -18,6 +18,38 @@ python main.py speech2text
 python main.py tkinter-app
 ```
 
+## Speech2Text
+
+After starting the program, the app will output some code. Wait until you see `Listening...` to give the robot instructions.
+
+An example will look like:
+
+    Listening... # start speaking here
+    turn left
+    INFO: Transcription: turn left
+    Converted:  turn left
+
+### Speech Commands for the Robot
+
+| Phrase | Action |
+| :-- | :-- |
+| "head up" | `moveHeadUp` |
+| "head down" | `moveHeadDown` |
+| "head left" | `moveHeadLeft` |
+| "head right" | `moveHeadRight` |
+| "head center" | `centerHead` |
+| "body left" | `moveWaistLeft` |
+| "body right" | `moveWaistRight` |
+| "body center" | `centerWaist` |
+| "forward" | `increaseWheelSpeed` |
+| "reverse" | `decreaseWheelSpeed` |
+| "turn left" | `turnLeft` |
+| "turn right" | `turnRight` |
+| "stop" | `stop` |
+| "speed one" | `setSpeedLevelOne` |
+| "speed two" | `setSpeedLevelTwo` |
+| "speed three" | `setSpeedLevelThree` |
+
 ## tkinter App
 
 ### Key Bindings
