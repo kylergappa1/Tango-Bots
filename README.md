@@ -2,6 +2,22 @@
 
 > CSCI-455: Embedded Systems (Robotics) - Spring 2022 @ Montana State University
 
+## Running the Code
+
+There are two versions/paths to comunicate with the robot: Through the keyboard (`tkinter-app`) or speaking into the microphone (`speech2text`). You must pass one of these commands as the first parameter to the `main.py` file.
+
+***Speech2Text***:
+
+```bash
+python main.py speech2text
+```
+
+***Tkinter App***:
+
+```bash
+python main.py tkinter-app
+```
+
 ## tkinter App
 
 ### Key Bindings
