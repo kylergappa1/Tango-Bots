@@ -11,11 +11,12 @@ import argparse
 from src import Speech2Text
 from src import TkinterApp
 from src import TangBotController
+from src import Dialog
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Tango Bots')
-    parser.add_argument('app', help='Application', type=str, choices=['tkinter-app', 'speech2text'])
+    parser.add_argument('app', help='Application', type=str, choices=['tkinter-app', 'speech2text', 'dialog'])
     args = parser.parse_args()
 
     bot = TangBotController()
@@ -28,5 +29,11 @@ if __name__ == "__main__":
         tk_app.update_idletasks()
         tk_app.update()
         tk_app.mainloop()
+    elif args.app == 'dialog':
+        dialog = Dialog()
+        try:
+            dialog.run()
+        except KeyboardInterrupt:
+            pass
 
 # END main.py

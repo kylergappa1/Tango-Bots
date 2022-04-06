@@ -4,7 +4,7 @@ import logging
 import inspect
 
 LOG_LEVEL = logging.INFO
-LOG_LEVEL = logging.DEBUG
+# LOG_LEVEL = logging.DEBUG
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=LOG_LEVEL)
 
