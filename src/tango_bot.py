@@ -6,6 +6,15 @@ from .usb import serial
 from .usb import getUSB
 from enum import Enum
 from time import sleep
+import pyttsx3
+
+
+engine = pyttsx3.init()
+# getting details of current voice
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[10].id)
+engine.setProperty('rate', 150)
+
 
 class BotServos(Enum):
     WheelTogether = 0x00
@@ -168,6 +177,9 @@ class TangBotController:
         self.WHEEL_SPEED = self.TARGET_CENTER
         self.writeCmd(BotServos.WheelTogether, self.WHEEL_SPEED)
 
+    def speak(self, text):
+        engine.say(text)
+        engine.runAndWait()
 
     def setSpeed(self, speed: int):
         self.SPEED = speed
@@ -212,26 +224,54 @@ class TangBotController:
 
     """WHEEL Movement Methods"""
 
-    def increaseWheelSpeed(self):
+    def increaseWheelSpeed(self, speed_level: int = None):
         self.DIRECTION_STATE = DirectionState.Forwards
-        self.WHEEL_SPEED -= self.SPEED
+        if speed_level is None:
+            self.WHEEL_SPEED -= self.SPEED
+        else:
+            if speed_level == 1:
+                speed = self.TARGET_CENTER - self.SPEED_FLOOR
+                speed = speed * (1/3)
+                speed = self.SPEED_FLOOR + speed
+                self.WHEEL_SPEED = int(speed)
+            elif speed_level == 2:
+                speed = self.TARGET_CENTER - self.SPEED_FLOOR
+                speed = speed * (2/3)
+                speed = self.SPEED_FLOOR + speed
+                self.WHEEL_SPEED = int(speed)
+            elif speed_level == 3:
+                self.WHEEL_SPEED = self.SPEED_FLOOR
 
-    def decreaseWheelSpeed(self):
+    def decreaseWheelSpeed(self, speed_level: int = None):
         self.DIRECTION_STATE = DirectionState.Backwards
-        self.WHEEL_SPEED += self.SPEED
+        if speed_level is None:
+            self.WHEEL_SPEED += self.SPEED
+        else:
+            if speed_level == 1:
+                speed = self.SPEED_CEILING - self.TARGET_CENTER
+                speed = speed * (1/3)
+                speed = self.TARGET_CENTER + speed
+                self.WHEEL_SPEED = int(speed)
+            elif speed_level == 2:
+                speed = self.SPEED_CEILING - self.TARGET_CENTER
+                speed = speed * (2/3)
+                speed = self.TARGET_CENTER + speed
+                self.WHEEL_SPEED = int(speed)
+            elif speed_level == 3:
+                self.WHEEL_SPEED = self.SPEED_CEILING
 
     def turnLeft(self):
         self.DIRECTION_STATE = DirectionState.LeftTurn
         self.WHEEL_SPEED = 7500
         # self.writeCmd(BotServos.RightWheel, 7500)
-        sleep(.3)
+        sleep(.5)
         self.stop()
 
     def turnRight(self):
         self.DIRECTION_STATE = DirectionState.RightTurn
         self.WHEEL_SPEED = 4500
         # self.writeCmd(BotServos.RightWheel, 4600)
-        sleep(.3)
+        sleep(.5)
         self.stop()
 
 # END
