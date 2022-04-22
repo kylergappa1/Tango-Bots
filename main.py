@@ -14,7 +14,7 @@ from src import Dialog
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Tango Bots')
-    parser.add_argument('app', help='Application', type=str, choices=['gui', 'speech2text', 'dialog'])
+    parser.add_argument('app', help='Application', type=str, choices=['gui', 'speech2text', 'dialog', 'game'])
     args = parser.parse_args()
     if args.app == 'speech2text':
         bot = TangBotController()
