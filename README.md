@@ -4,19 +4,17 @@
 
 ## Running the Code
 
-There are two versions/paths to comunicate with the robot: Through the keyboard (`tkinter-app`) or speaking into the microphone (`speech2text`). You must pass one of these commands as the first parameter to the `main.py` file.
-
-***Speech2Text***:
-
-```bash
-python main.py speech2text
-```
-
 ***Tkinter App***:
 
-```bash
-python main.py tkinter-app
-```
+    python main.py gui
+    
+***Speech2Text***:
+
+    python main.py speech2text
+
+***Dialog***:
+
+    python main.py dialog
 
 ## Speech2Text
 
@@ -49,49 +47,6 @@ An example will look like:
 | "speed one" | `setSpeedLevelOne` |
 | "speed two" | `setSpeedLevelTwo` |
 | "speed three" | `setSpeedLevelThree` |
-
-## tkinter App
-
-### Key Bindings
-
-<kbd>space</kbd> will kill the running app and stop the robot.
-
-#### Head
-
-| Action | Key |
-| :-- | :--: |
-| Move head up | <kbd>w</kbd> |
-| Move head down | <kbd>s</kbd> |
-| Pan head left | <kbd>a</kbd> |
-| Pan head right | <kbd>d</kbd> |
-
-#### Waist
-
-| Action | Key |
-| :-- | :--: |
-| Rotate left | <kbd>z</kbd> |
-| Rotate right | <kbd>c</kbd> |
-| Center waist | <kbd>x</kbd> |
-
-#### Wheels
-
-| Action | Key |
-| :-- | :--: |
-| Forward | <kbd>Up</kbd> |
-| Backwards | <kbd>Down</kbd> |
-| Turn Left | <kbd>Left</kbd> |
-| Turn Right | <kbd>Right</kbd> |
-| Stop | <kbd>q</kbd> |
-
-#### Speed
-
-| Action | Key |
-| :-- | :--: |
-| Speed level one: `100` | <kbd>j</kbd> |
-| Speed level two: `500` | <kbd>k</kbd> |
-| Speed level three: `800` | <kbd>l</kbd> |
-
-## Speech2Text
 
 ### Setup Steps
 
