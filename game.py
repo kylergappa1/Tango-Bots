@@ -260,21 +260,23 @@ class GameApp(tk.Tk):
         # Status Bar
         # ------------------------------------------------------------
         self.status_bar = ttk.Frame(self)           # status bar frame
-        self.status = ttk.Label(self.status_bar)    # status bar label
-        self.status.config(text="Status...")        # set the default status label text
+        status_frame = ttk.LabelFrame(self.status_bar, text='Status')
+        self.status = ttk.Label(status_frame)    # status bar label
+        self.status.config(text="Status")        # set the default status label text
+        self.status.pack()
+        status_frame.grid(column=0, row=0)
 
-        healthbar_frame = ttk.Frame(self.status_bar)
+        healthbar_frame = ttk.LabelFrame(self.status_bar, text='Health')
         self.health_bar = ttk.Progressbar(
             healthbar_frame,
             orient='horizontal',
             mode='indeterminate',
             # length=280
         )
-        ttk.Label(healthbar_frame, text='Health').pack(side='left')
         self.health_bar.pack(side='left')
 
         # grid (pack) the status bar items
-        self.status.grid(column=0, row=0)
+        # self.status.grid(column=0, row=0)
         # self.health_bar.grid(column=1, row=0, sticky=tk.EW)
         healthbar_frame.grid(column=1, row=0, sticky=tk.EW, padx=10, pady=5)
 
