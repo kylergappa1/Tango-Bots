@@ -5,11 +5,15 @@ import tkinter as tk
 from tkinter import ttk
 from typing import List
 from PIL import Image, ImageTk
+import speech_recognition as sr
 import pyttsx3
 
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(format='%(levelname)s: %(message)s', level=LOG_LEVEL)
 log = logging
+
+recognizer: sr.Recognizer = sr.Recognizer()
+microphone: sr.Microphone = sr.Microphone()
 
 GAME_1_DATA = {
     1: {
@@ -244,6 +248,37 @@ class GameApp(tk.Tk):
         engine.stop()
         del engine
 
+    def recognize_speech_from_mic(self):
+        # check that recognizer and microphone arguments are appropriate type
+        if not isinstance(recognizer, sr.Recognizer):
+            raise TypeError("`recognizer` must be `Recognizer` instance")
+
+        if not isinstance(microphone, sr.Microphone):
+            raise TypeError("`microphone` must be `Microphone` instance")
+        # adjust the recognizer sensitivity to ambient noise and record audio
+        # from the microphone
+        try:
+            with microphone as source:
+                recognizer.adjust_for_ambient_noise(source, 0.5)
+                # APP_INST.update_idletasks()
+                # APP_INST.update()
+                print("Listening...")
+                audio = recognizer.listen(source, timeout=5, phrase_time_limit=2)
+        except sr.WaitTimeoutError:
+            return None
+        # try recognizing the speech in the recording
+        # if a RequestError or UnknownValueError exception is caught
+        transcription = None
+        try:
+            transcription = recognizer.recognize_google(audio)
+            print(transcription)
+        except sr.RequestError as err:
+            # API was unreachable or unresponsive
+            print("API was unreachable or unresponsive.\n", err)
+        except sr.UnknownValueError as err:
+            # speech was unintelligible
+            print("Unknown word")
+        return transcription
 
     def loadGame(self, DATA):
 
@@ -354,14 +389,32 @@ class GameApp(tk.Tk):
             self.buttons['right'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
 
         prompt_text = ''
-        dir_words = list(directions.keys())
-        if len(dir_words) > 1:
+        direction_words = list(directions.keys())
+        if len(direction_words) > 1:
             prompt_text = ', '.join(list(directions.keys())[:-1])
-            prompt_text = f"I see a path to the {prompt_text}, and {dir_words[-1]}, which way do you want to go?"
+            prompt_text = f"I see a path to the {prompt_text}, and {direction_words[-1]}, which way do you want to go?"
         else:
-            prompt_text = f"I see a path to the {dir_words[0]}, do you want to continue?"
+            prompt_text = f"I see a path to the {direction_words[0]}, do you want to continue?"
         # print(prompt_text)
         self.speak(prompt_text)
+
+        while True:
+            user_action = self.recognize_speech_from_mic()
+            if isinstance(user_action, str):
+                break
+
+        if len(direction_words) == 1 and user_action.lower() == 'yes':
+            self.moveBotToNode(directions[direction_words[0]])
+        else:
+            user_action = user_action.lower()
+            if user_action == 'north' and 'North' in directions:
+                self.moveBotToNode(directions['North'])
+            elif user_action == 'south' and 'South' in directions:
+                self.moveBotToNode(directions['South'])
+            elif user_action == 'east' and 'East' in directions:
+                self.moveBotToNode(directions['East'])
+            elif user_action == 'west' and 'West' in directions:
+                self.moveBotToNode(directions['West'])
 
     def moveBotToNode(self, node: Node):
         self.focus()
