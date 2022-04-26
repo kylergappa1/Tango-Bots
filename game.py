@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import List
 from PIL import Image, ImageTk
-
+import pyttsx3
 
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(format='%(levelname)s: %(message)s', level=LOG_LEVEL)
@@ -68,7 +68,6 @@ class Node:
     position: Position
     grid_position: Position
     neighbors: dict
-    widget: ttk.Frame
     label: ttk.Label
 
     # constructor
@@ -114,7 +113,6 @@ class Node:
         node: Node = node
         self.neighbors[node.num] = node
 
-
     def neighborDirections(self):
         directions_dict = dict()
         for num, neighbor in self.neighbors.items():
@@ -134,10 +132,10 @@ class Node:
 
         return directions_dict
 
-
 class GameApp(tk.Tk):
 
     game_board: ttk.Frame
+    map_grid: ttk.Frame
     controls: ttk.Frame
     buttons: dict
     nodes_dict: dict
@@ -154,7 +152,7 @@ class GameApp(tk.Tk):
         self.neighbor_bridges_dict = dict()
         self.active_node = None
 
-        self.robot_image = fetchTkImage('./assets/robot.png', size=20)
+        self.robot_image = fetchTkImage('./assets/robot.png', size=25)
 
         # title
         self.title("TangoBot Game")
@@ -178,7 +176,22 @@ class GameApp(tk.Tk):
         self.style.configure('NodeLabel.TLabel', background='yellow', foreground='black')
 
         self.game_board = ttk.Frame(self)
-        self.controls = ttk.Frame(self)
+        self.controls = ttk.LabelFrame(self.game_board, text='Controls')
+        self.map_grid = ttk.Frame(self.game_board)
+
+        self.controls.columnconfigure(0, weight=1)
+        self.controls.columnconfigure(1, weight=1)
+        self.controls.columnconfigure(2, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
+
+        # self.controls.grid(column=0, row=0)
+        # self.map_grid.grid(column=1, row=0)
+
+        self.controls.pack(side='left', fill='y', padx=10, pady=10, ipadx=10, ipady=10)
+        self.map_grid.pack(expand=True, fill='both', side='left')
+        self.game_board.pack(expand=True, fill='both')
 
         btns_data = {
             'up' : {
@@ -195,8 +208,9 @@ class GameApp(tk.Tk):
             },
         }
         for name, data in btns_data.items():
-            self.buttons[name] = ttk.Button(self.controls, text=name)
-            self.buttons[name].grid(column=data['pos'][0], row=data['pos'][1])
+            btn = ttk.Button(self.controls, text=name)
+            btn.grid(column=data['pos'][0], row=data['pos'][1], sticky=tk.NSEW)
+            self.buttons[name] = btn
 
     @property
     def screen_width(self):
@@ -218,11 +232,20 @@ class GameApp(tk.Tk):
         except tk.TclError as err:
             log.error(err)
 
+    def speak(self, text):
+        self.update_idletasks()
+        self.update()
+        engine: pyttsx3.Engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        engine.setProperty('voice', voices[10].id)
+        engine.setProperty('rate', 200)
+        engine.say(text)
+        engine.runAndWait()
+        engine.stop()
+        del engine
+
+
     def loadGame(self, DATA):
-        # Remove existing data
-        if isinstance(self.game_board, ttk.Frame):
-            self.game_board.destroy()
-        self.game_board = ttk.Frame(self)
 
         self.nodes_dict = dict()
         max_x = 0
@@ -254,10 +277,14 @@ class GameApp(tk.Tk):
             node.gY = y_diff
             node.gX = node.pX * 2
             # create node widget
-            node.widget = ttk.Frame(self.game_board, style='NodeWidget.TFrame')
-            node.label = ttk.Label(node.widget, text=node.num, style='NodeLabel.TLabel', justify=tk.CENTER, anchor=tk.CENTER)
-            node.label.pack(expand=True, padx=10, pady=10)
-            node.widget.grid(column=node.gX, row=node.gY, sticky=tk.NSEW)
+            node.label = ttk.Label(self.map_grid)
+            node.label.config(text=node.num)
+            node.label.config(style='NodeLabel.TLabel')
+            node.label.config(justify=tk.CENTER)
+            node.label.config(anchor=tk.CENTER)
+            node.label.config(font=("Courier", 22))
+            node.label.config(width=2)
+            node.label.grid(column=node.gX, row=node.gY, sticky=tk.NSEW)
 
         # Set Node neighbors and bridge widgets between neightbors
         # ------------------------------------------------------------
@@ -292,20 +319,15 @@ class GameApp(tk.Tk):
         # ------------------------------------------------------------
         for coordinateX, xDict in self.neighbor_bridges_dict.items():
             for coordinateY, position in xDict.items():
-
-                bridge_frame = ttk.Frame(self.game_board, style='NodeWidget.TFrame')
+                bridge_frame = ttk.Frame(self.map_grid, style='NodeWidget.TFrame')
                 bridge_frame.grid(column=position.x, row=position.y, sticky=tk.NSEW)
 
         # configure column/row weight for grame_board frame
         # ------------------------------------------------------------
-        for i in range((max_x*2)+1): self.game_board.columnconfigure(i, weight=1)
-        for i in range((max_y*2)+1): self.game_board.rowconfigure(i, weight=1)
+        for i in range((max_x*2)+1): self.map_grid.columnconfigure(i, weight=1)
+        for i in range((max_y*2)+1): self.map_grid.rowconfigure(i, weight=1)
 
     def playGame(self):
-        # pack the controls (buttons)
-        self.controls.pack()
-        # pack the game_board
-        self.game_board.pack(expand=True, fill='both')
 
         # make sure active node is available
         if self.active_node is None:
@@ -331,14 +353,21 @@ class GameApp(tk.Tk):
             self.buttons['right'].config(state='!DISABLED')
             self.buttons['right'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
 
+        prompt_text = ''
+        dir_words = list(directions.keys())
+        if len(dir_words) > 1:
+            prompt_text = ', '.join(list(directions.keys())[:-1])
+            prompt_text = f"I see a path to the {prompt_text}, and {dir_words[-1]}, which way do you want to go?"
+        else:
+            prompt_text = f"I see a path to the {dir_words[0]}, do you want to continue?"
+        # print(prompt_text)
+        self.speak(prompt_text)
+
     def moveBotToNode(self, node: Node):
         self.focus()
         self.active_node.label.config(image='')
         self.active_node = node
         self.playGame()
-
-
-
 
 def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = None):
     img = Image.open(file)
@@ -349,7 +378,6 @@ def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = No
     if transpose is not None:
         img = img.transpose(transpose)
     return ImageTk.PhotoImage(img)
-
 
 def runApp():
     app = GameApp()
