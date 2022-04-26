@@ -3,10 +3,12 @@ import sys
 import logging
 import tkinter as tk
 from tkinter import ttk
+from tkinter.messagebox import showerror, showwarning, showinfo
 from typing import List
 from PIL import Image, ImageTk
 import speech_recognition as sr
 import pyttsx3
+import threading
 
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(format='%(levelname)s: %(message)s', level=LOG_LEVEL)
@@ -22,19 +24,31 @@ GAME_1_DATA = {
     },
     2: {
         'position': (0, 1),
-        'neighbors': set([3])
+        'neighbors': set([3]),
+        'event': {
+            'type': 'box'
+        }
     },
     3: {
         'position': (1, 1),
-        'neighbors': set([1, 2, 4, 5])
+        'neighbors': set([1, 2, 4, 5]),
+        'event': {
+            'type': 'battle'
+        }
     },
     4: {
         'position': (2, 1),
-        'neighbors': set([3])
+        'neighbors': set([3]),
+        'event': {
+            'type': 'battle'
+        }
     },
     5: {
         'position': (1, 0),
-        'neighbors': set([3])
+        'neighbors': set([3]),
+        'event': {
+            'type': 'restore_health'
+        }
     }
 }
 
@@ -141,6 +155,7 @@ class GameApp(tk.Tk):
     game_board: ttk.Frame
     map_grid: ttk.Frame
     controls: ttk.Frame
+    status: ttk.Label
     buttons: dict
     nodes_dict: dict
     neighbor_bridges_dict: dict
@@ -182,39 +197,64 @@ class GameApp(tk.Tk):
         self.game_board = ttk.Frame(self)
         self.controls = ttk.LabelFrame(self.game_board, text='Controls')
         self.map_grid = ttk.Frame(self.game_board)
+        self.status = ttk.Label(self.game_board)
 
-        self.controls.columnconfigure(0, weight=1)
-        self.controls.columnconfigure(1, weight=1)
-        self.controls.columnconfigure(2, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
+        self.status.config(text="Status...")
 
-        # self.controls.grid(column=0, row=0)
-        # self.map_grid.grid(column=1, row=0)
+        for i in range(3): self.controls.columnconfigure(i, weight=1)
+        # for i in range(4): self.controls.rowconfigure(i, weight=1)
 
+        self.status.pack(fill='x', padx=10, pady=10)
         self.controls.pack(side='left', fill='y', padx=10, pady=10, ipadx=10, ipady=10)
-        self.map_grid.pack(expand=True, fill='both', side='left')
+        self.map_grid.pack(expand=True, fill='both', side='left', padx=10, pady=10)
         self.game_board.pack(expand=True, fill='both')
 
         btns_data = {
+            'play': {
+                'pos': (0, 0),
+                'options': {
+                    'columnspan': 3,
+                    'pady': 5
+                }
+            },
+            'stop': {
+                'pos': (0, 0),
+                'options': {
+                    'columnspan': 3,
+                    'pady': 5
+                }
+            },
             'up' : {
-                'pos': (1, 0)
+                'pos': (1, 1)
             },
             'down' : {
-                'pos': (1, 2)
+                'pos': (1, 3)
             },
             'left' : {
-                'pos': (0, 1)
+                'pos': (0, 2)
             },
             'right' : {
-                'pos': (2, 1)
+                'pos': (2, 2)
             },
         }
         for name, data in btns_data.items():
             btn = ttk.Button(self.controls, text=name)
-            btn.grid(column=data['pos'][0], row=data['pos'][1], sticky=tk.NSEW)
+            colspan = 1
+            if 'colspan' in data: colspan = data['colspan']
+            btn_options = {
+                'column': data['pos'][0],
+                'row': data['pos'][1],
+                'sticky': tk.NSEW,
+                'columnspan': 1,
+                'rowspan': 1
+            }
+            if 'options' in data:
+                btn_options = {**btn_options, **data['options']}
+            btn.grid(**btn_options)
             self.buttons[name] = btn
+
+        self.buttons['play'].config(command=lambda:self.playGame())
+        self.buttons['play'].tkraise()
 
     @property
     def screen_width(self):
@@ -262,12 +302,17 @@ class GameApp(tk.Tk):
                 recognizer.adjust_for_ambient_noise(source, 0.5)
                 # APP_INST.update_idletasks()
                 # APP_INST.update()
-                print("Listening...")
+                self.status.config(text="Listening...")
+                self.update_idletasks()
+                self.update()
                 audio = recognizer.listen(source, timeout=5, phrase_time_limit=2)
         except sr.WaitTimeoutError:
             return None
         # try recognizing the speech in the recording
         # if a RequestError or UnknownValueError exception is caught
+        self.status.config(text="Transcribing input...")
+        self.update_idletasks()
+        self.update()
         transcription = None
         try:
             transcription = recognizer.recognize_google(audio)
@@ -362,32 +407,25 @@ class GameApp(tk.Tk):
         for i in range((max_x*2)+1): self.map_grid.columnconfigure(i, weight=1)
         for i in range((max_y*2)+1): self.map_grid.rowconfigure(i, weight=1)
 
+        self.moveBotToNode(self.nodes_dict[1])
+
     def playGame(self):
 
         # make sure active node is available
         if self.active_node is None:
-            self.active_node = self.nodes_dict[1]
+            self.moveBotToNode(self.nodes_dict[1])
 
-        self.active_node.label.config(image=self.robot_image)
+        # update status
+        self.status.config(text="Playing Game")
+        self.update_idletasks()
+        self.update()
+
+        # disable play button and raise stop button
+        self.buttons['stop'].tkraise()
+        self.buttons['stop'].config(state='!DISABLED')
+        self.buttons['play'].config(state=tk.DISABLED)
 
         directions = self.active_node.neighborDirections()
-        # disabled all buttons
-        for btn_name, btn in self.buttons.items():
-            btn.config(state=tk.DISABLED)
-
-        # Update the command bindings for the control buttons (Up, Down, Left, and Right)
-        if 'North' in directions:
-            self.buttons['up'].config(state='!DISABLED')
-            self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
-        if 'South' in directions:
-            self.buttons['down'].config(state='!DISABLED')
-            self.buttons['down'].config(command=lambda n = directions['South'] : self.moveBotToNode(n))
-        if 'East' in directions:
-            self.buttons['left'].config(state='!DISABLED')
-            self.buttons['left'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
-        if 'West' in directions:
-            self.buttons['right'].config(state='!DISABLED')
-            self.buttons['right'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
 
         # Build the text prompt for the robot to speak to the user
         # There are 2 options
@@ -409,33 +447,66 @@ class GameApp(tk.Tk):
         # no audio was picket up, transcription failed
         if not isinstance(user_action, str):
             log.debug('Audio transcription from mic failed.')
-            return
-
-        # determine what the user said...
-        # --------------------------------
-        # if there is only one visible direction, then the user must
-        # answer 'yes' to proceed'
-        if len(direction_words) == 1 and user_action.lower() == 'yes':
-            self.moveBotToNode(directions[direction_words[0]])
+            self.status.config(text="Audio transcription from mic failed.")
+            self.update_idletasks()
+            self.update()
         else:
-            # The user must provide a valid direction
-            # either: North, South, East, or West, and the
-            # direction must be visible for the robot (i.e. in the 'directions' variable)
-            user_action = user_action.lower()
-            if user_action == 'north' and 'North' in directions:
-                self.moveBotToNode(directions['North'])
-            elif user_action == 'south' and 'South' in directions:
-                self.moveBotToNode(directions['South'])
-            elif user_action == 'east' and 'East' in directions:
-                self.moveBotToNode(directions['East'])
-            elif user_action == 'west' and 'West' in directions:
-                self.moveBotToNode(directions['West'])
+            # determine what the user said...
+            # --------------------------------
+            # if there is only one visible direction, then the user must
+            # answer 'yes' to proceed'
+            if len(direction_words) == 1 and user_action.lower() == 'yes':
+                self.moveBotToNode(directions[direction_words[0]])
+            else:
+                # The user must provide a valid direction
+                # either: North, South, East, or West, and the
+                # direction must be visible for the robot (i.e. in the 'directions' variable)
+                user_action = user_action.lower()
+                if user_action == 'north' and 'North' in directions:
+                    self.moveBotToNode(directions['North'])
+                elif user_action == 'south' and 'South' in directions:
+                    self.moveBotToNode(directions['South'])
+                elif user_action == 'east' and 'East' in directions:
+                    self.moveBotToNode(directions['East'])
+                elif user_action == 'west' and 'West' in directions:
+                    self.moveBotToNode(directions['West'])
+            self.playGame()
+
+        # disable stop button and raise play button
+        self.buttons['play'].tkraise()
+        self.buttons['play'].config(state='!DISABLED')
+        self.buttons['stop'].config(state=tk.DISABLED)
 
     def moveBotToNode(self, node: Node):
         self.focus()
-        self.active_node.label.config(image='')
+        if isinstance(self.active_node, Node):
+            if isinstance(self.active_node.label, ttk.Label):
+                self.active_node.label.config(image='')
         self.active_node = node
-        self.playGame()
+        # set robot image on active node
+        self.active_node.label.config(image=self.robot_image)
+        directions = self.active_node.neighborDirections()
+        # disabled all buttons
+        move_btns = ['up', 'down', 'left', 'right']
+        for btn_name in move_btns:
+            self.buttons[btn_name].config(state=tk.DISABLED)
+        # Update the command bindings for the control buttons (Up, Down, Left, and Right)
+        if 'North' in directions:
+            self.buttons['up'].config(state='!DISABLED')
+            self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
+        if 'South' in directions:
+            self.buttons['down'].config(state='!DISABLED')
+            self.buttons['down'].config(command=lambda n = directions['South'] : self.moveBotToNode(n))
+        if 'East' in directions:
+            self.buttons['left'].config(state='!DISABLED')
+            self.buttons['left'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
+        if 'West' in directions:
+            self.buttons['right'].config(state='!DISABLED')
+            self.buttons['right'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
+        # make updates visible
+        self.update_idletasks()
+        self.update()
+
 
 def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = None):
     img = Image.open(file)
@@ -450,7 +521,7 @@ def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = No
 def runApp():
     app = GameApp()
     app.loadGame(GAME_1_DATA)
-    app.playGame()
+    # app.playGame()
     app.run()
     sys.exit(0)
 
