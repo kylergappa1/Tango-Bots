@@ -87,13 +87,17 @@ class Node:
     grid_position: Position
     neighbors: dict
     label: ttk.Label
+    visited: bool # True is the robot has previously been here
+    event: dict # stores data about the event (what happens when the robot encounters this node)
 
     # constructor
-    def __init__(self, num: int, position: Position):
+    def __init__(self, num: int, position: Position, event: dict):
         self.num = num
         self.position = position
         self.grid_position = Position()
         self.neighbors = dict()
+        self.visited = False
+        self.event = event
 
     @property
     def pX(self) -> int:
@@ -194,17 +198,34 @@ class GameApp(tk.Tk):
         self.style.configure('NodeWidget.TFrame', background='yellow')
         self.style.configure('NodeLabel.TLabel', background='yellow', foreground='black')
 
+        self.status_bar = ttk.Frame(self)
+
+        self.status = ttk.Label(self.status_bar)
+        self.status.config(text="Status...")
+
+        self.health_bar = ttk.Progressbar(
+            self.status_bar,
+            orient='horizontal',
+            mode='indeterminate',
+            # length=280
+        )
+
+
+        self.status.grid(column=0, row=0)
+        self.health_bar.grid(column=1, row=0, sticky=tk.EW)
+
+
+
         self.game_board = ttk.Frame(self)
         self.controls = ttk.LabelFrame(self.game_board, text='Controls')
         self.map_grid = ttk.Frame(self.game_board)
-        self.status = ttk.Label(self.game_board)
 
-        self.status.config(text="Status...")
+
 
         for i in range(3): self.controls.columnconfigure(i, weight=1)
         # for i in range(4): self.controls.rowconfigure(i, weight=1)
 
-        self.status.pack(fill='x', padx=10, pady=10)
+        self.status_bar.pack(fill='x')
         self.controls.pack(side='left', fill='y', padx=10, pady=10, ipadx=10, ipady=10)
         self.map_grid.pack(expand=True, fill='both', side='left', padx=10, pady=10)
         self.game_board.pack(expand=True, fill='both')
@@ -343,7 +364,10 @@ class GameApp(tk.Tk):
             if node_y > max_y: max_y = node_y
             # create the node
             node_position = Position(x=node_x, y=node_y)
-            node = Node(num=node_num, position=node_position)
+            node_event = None
+            if 'event' in node_data:
+                node_event = node_data['event']
+            node = Node(num=node_num, position=node_position, event=node_event)
             # add new node to the dictionary of nodes
             self.nodes_dict[node_num] = node
 
@@ -506,6 +530,10 @@ class GameApp(tk.Tk):
         # make updates visible
         self.update_idletasks()
         self.update()
+
+        # TODO - process event
+
+        self.active_node.visited = True
 
 
 def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = None):
