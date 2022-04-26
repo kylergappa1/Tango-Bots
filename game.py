@@ -17,6 +17,7 @@ log = logging
 recognizer: sr.Recognizer = sr.Recognizer()
 microphone: sr.Microphone = sr.Microphone()
 
+# Game 1 data
 GAME_1_DATA = {
     1: {
         'position': (1, 2),
@@ -52,89 +53,128 @@ GAME_1_DATA = {
     }
 }
 
-GAME_2_DATA = {
-    1: {
-        'position': (1, 2),
-    },
-    2: {
-        'position': (0, 1),
-    },
-    3: {
-        'position': (1, 1),
-    },
-    4: {
-        'position': (2, 1),
-    },
-    5: {
-        'position': (1, 0),
-    }
-}
+"""Position Class
 
+This class is used to store x/y coordinate values for the Node position and also for the
+grid positioning.
+
+See Node class for grid positioning info.
+
+"""
 class Position:
+    """properties"""
     x: int
     y: int
-    # constructor
-    def __init__(self, x: int = None, y: int = None):
-        self.x = x
-        self.y = y
 
+    """constructor"""
+    def __init__(self, x: int = None, y: int = None):
+        self.x = x  # set the x value
+        self.y = y  # set the y value
+
+    """Position class object to string.
+    This method returns the (x,y) data as a string.
+    """
     def __str__(self):
         return f"({self.x}, {self.y})"
 
+"""Node Class
+
+This class is used to represent each of the locations on the game board map that the robot can visit.
+
+Properties:
+
+- position:         instance of the Position class, stores the (x,y) coordinates of the nodes location.
+- grid_position:    stores the grid column/row information for the node widget location on the game board.
+- nieghbors:        this is a dictionary of the nodes neighors. The dictionary keys are the neighbor node's number (num)
+
+"""
 class Node:
-    num: int
-    position: Position
-    grid_position: Position
-    neighbors: dict
-    label: ttk.Label
-    visited: bool # True is the robot has previously been here
-    event: dict # stores data about the event (what happens when the robot encounters this node)
+    """properties"""
+    num: int                # Node's number
+    position: Position      # Node's position relative to all other nodes on a x-y coordinate plane
+    grid_position: Position # Grid position of the node's widget (the widget is the tkinter label that is display on the app)
+    neighbors: dict         # A dictionary of neighboring nodes where the keys are the neighboring node's number
+    label: ttk.Label        # the tkinter widget
+    visited: bool           # True is the robot has previously been here
+    event: dict             # stores data about the event (what happens when the robot encounters this node)
 
-    # constructor
+    """constructor"""
     def __init__(self, num: int, position: Position, event: dict):
-        self.num = num
-        self.position = position
-        self.grid_position = Position()
-        self.neighbors = dict()
-        self.visited = False
-        self.event = event
+        self.num = num                  # set the node's number
+        self.position = position        # set the node's position
+        self.grid_position = Position() # initialize the grid_position (this will be set later when the x/y range of all the nodes is calculated, see GameApp:loadGame())
+        self.neighbors = dict()         # initialize the neighbor dictionary
+        self.visited = False            # New nodes have not been visited yet, so initialize to False
+        self.event = event              # set the Node's event details
 
+    """Position X Getter
+    returns the node's position 'x' value
+    """
     @property
     def pX(self) -> int:
         return self.position.x
 
+    """Position Y Getter
+    returns the node's position 'y' value
+    """
     @property
     def pY(self) -> int:
         return self.position.y
 
+    """Grid Position X Getter
+    returns the node's grid position 'x' value
+    """
     @property
     def gX(self) -> int:
         return self.grid_position.x
 
+    """Grid Position Y Getter
+    returns the node's grid position 'y' value
+    """
     @property
     def gY(self) -> int:
         return self.grid_position.y
 
+    """Position X Setter"""
     @pX.setter
     def pX(self, x: int):
         self.position.x = x
 
+    """Position Y Setter"""
     @pY.setter
     def pY(self, y: int):
         self.position.y = y
 
+    """Grid Position X Setter"""
     @gX.setter
     def gX(self, x: int):
         self.grid_position.x = x
 
+    """Grid Position Y Setter"""
     @gY.setter
     def gY(self, y: int):
         self.grid_position.y = y
 
+    """Add (Node) Neighbor
+    Add a node to the neighbor dictionary
+    """
     def addNeighbor(self, node):
         node: Node = node
         self.neighbors[node.num] = node
 
+    """Neighbor Directions
+    Returns a dictionary of the neighboring node's direction
+
+    Example:
+    {
+        'North': <node object>,
+        'South': <node object>
+    }
+
+    This would indicate that there are neighboring nodes to the North and to the South.
+    The value's are the instances of the neighboring nodes.
+
+    """
     def neighborDirections(self):
         directions_dict = dict()
         for num, neighbor in self.neighbors.items():
@@ -154,19 +194,22 @@ class Node:
 
         return directions_dict
 
+"""GameApp
+tkinter app for the game
+"""
 class GameApp(tk.Tk):
+    """properties"""
+    game_board: ttk.Frame           # container frame for the controls and map frames.
+    map_grid: ttk.Frame             # a frame the holds all of the node widgets. The node widgets are what make up the paths on the game board.
+    controls: ttk.Frame             # frame to house button controls (used to navigate the game board)
+    status: ttk.Label               # A label used to send updates to the user
+    buttons: dict                   # list of buttons on the controls frame
+    nodes_dict: dict                # dictionary of available nodes within the game
+    neighbor_bridges_dict: dict     # nodes have 1 space between them, this dictionary stores the widgets that make up the bridges the connect neightboring nodes
+    active_node: Node               # reference to the current node that the robot is located at
+    robot_image: ImageTk.PhotoImage # image used to show the robot's location on the game board map
 
-    game_board: ttk.Frame
-    map_grid: ttk.Frame
-    controls: ttk.Frame
-    status: ttk.Label
-    buttons: dict
-    nodes_dict: dict
-    neighbor_bridges_dict: dict
-    active_node: Node
-    robot_image: ImageTk.PhotoImage
-
-    # constructor
+    """constructor"""
     def __init__(self):
         super().__init__()
 
@@ -174,16 +217,20 @@ class GameApp(tk.Tk):
         self.nodes_dict = dict()
         self.neighbor_bridges_dict = dict()
         self.active_node = None
-
+        # get the robot image
         self.robot_image = fetchTkImage('./assets/robot.png', size=25)
 
+        """tkinter app settings
+        - title
+        - add protocol (callback when close button is pressed)
+        - set the window geomerty
+        """
         # title
         self.title("TangoBot Game")
         self.config(bg='white')
-
-        # make the top right close button
+        # override defaule protocol - make the top right close button
         self.protocol('WM_DELETE_WINDOW', self.stop)
-
+        """set the window geometry"""
         # get the screen dimension
         window_width = int(self.screen_width / 4)
         window_height = int(self.screen_height / 2)
@@ -193,15 +240,28 @@ class GameApp(tk.Tk):
         # set the position of the window to the center of the screen
         self.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
 
+        """Ttk Style
+        initialize the ttk styles used thoughout the app
+        """
         self.style = ttk.Style(self)
-        # self.style.configure('.', font=('Helvetica', 12), background='white') # Helvetica
+        self.style.configure('.', font=('Helvetica', 12), background='white')
         self.style.configure('NodeWidget.TFrame', background='yellow')
         self.style.configure('NodeLabel.TLabel', background='yellow', foreground='black')
 
-        self.status_bar = ttk.Frame(self)
+        """App Widgets
+        there are three main content areas within the game window
 
-        self.status = ttk.Label(self.status_bar)
-        self.status.config(text="Status...")
+        -----------------------
+        | Status Bar          |
+        ----------------------|
+        | Controls | Game Map |
+        -----------------------
+        """
+        # Status Bar
+        # ------------------------------------------------------------
+        self.status_bar = ttk.Frame(self)           # status bar frame
+        self.status = ttk.Label(self.status_bar)    # status bar label
+        self.status.config(text="Status...")        # set the default status label text
 
         self.health_bar = ttk.Progressbar(
             self.status_bar,
@@ -210,26 +270,22 @@ class GameApp(tk.Tk):
             # length=280
         )
 
-
+        # grid (pack) the status bar items
         self.status.grid(column=0, row=0)
         self.health_bar.grid(column=1, row=0, sticky=tk.EW)
 
-
-
+        """Game Board
+        The game board has two items; the controls and the map
+        """
         self.game_board = ttk.Frame(self)
+
+        # Controls
+        # ------------------------------------------------------------
         self.controls = ttk.LabelFrame(self.game_board, text='Controls')
-        self.map_grid = ttk.Frame(self.game_board)
-
-
-
-        for i in range(3): self.controls.columnconfigure(i, weight=1)
-        # for i in range(4): self.controls.rowconfigure(i, weight=1)
-
-        self.status_bar.pack(fill='x')
         self.controls.pack(side='left', fill='y', padx=10, pady=10, ipadx=10, ipady=10)
-        self.map_grid.pack(expand=True, fill='both', side='left', padx=10, pady=10)
-        self.game_board.pack(expand=True, fill='both')
-
+        # set the column weight for the controls frame
+        for i in range(3): self.controls.columnconfigure(i, weight=1)
+        # Button data
         btns_data = {
             'play': {
                 'pos': (0, 0),
@@ -258,10 +314,9 @@ class GameApp(tk.Tk):
                 'pos': (2, 2)
             },
         }
+        # create each of the buttons on the controls
         for name, data in btns_data.items():
             btn = ttk.Button(self.controls, text=name)
-            colspan = 1
-            if 'colspan' in data: colspan = data['colspan']
             btn_options = {
                 'column': data['pos'][0],
                 'row': data['pos'][1],
@@ -276,6 +331,16 @@ class GameApp(tk.Tk):
 
         self.buttons['play'].config(command=lambda:self.playGame())
         self.buttons['play'].tkraise()
+
+        # Map (Gameboard playing field)
+        # ------------------------------------------------------------
+        # Note: the game map node's are populated when the game data is loaded
+        self.map_grid = ttk.Frame(self.game_board)
+        self.map_grid.pack(expand=True, fill='both', side='left', padx=10, pady=10)
+
+        # pack the status bar and the game board
+        self.status_bar.pack(fill='x')
+        self.game_board.pack(expand=True, fill='both')
 
     @property
     def screen_width(self):
