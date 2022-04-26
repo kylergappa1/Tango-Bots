@@ -375,6 +375,7 @@ class GameApp(tk.Tk):
         for btn_name, btn in self.buttons.items():
             btn.config(state=tk.DISABLED)
 
+        # Update the command bindings for the control buttons (Up, Down, Left, and Right)
         if 'North' in directions:
             self.buttons['up'].config(state='!DISABLED')
             self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
@@ -388,6 +389,10 @@ class GameApp(tk.Tk):
             self.buttons['right'].config(state='!DISABLED')
             self.buttons['right'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
 
+        # Build the text prompt for the robot to speak to the user
+        # There are 2 options
+        # - There is only one visible path forward (to which the user must say "yes" to continue)
+        # - There is more than one visible path to move (to which the user must respond with the direction that they want to continue)
         prompt_text = ''
         direction_words = list(directions.keys())
         if len(direction_words) > 1:
@@ -398,14 +403,24 @@ class GameApp(tk.Tk):
         # print(prompt_text)
         self.speak(prompt_text)
 
-        while True:
-            user_action = self.recognize_speech_from_mic()
-            if isinstance(user_action, str):
-                break
+        # get user input (speech)
+        # while True:
+        user_action = self.recognize_speech_from_mic()
+        # no audio was picket up, transcription failed
+        if not isinstance(user_action, str):
+            log.debug('Audio transcription from mic failed.')
+            return
 
+        # determine what the user said...
+        # --------------------------------
+        # if there is only one visible direction, then the user must
+        # answer 'yes' to proceed'
         if len(direction_words) == 1 and user_action.lower() == 'yes':
             self.moveBotToNode(directions[direction_words[0]])
         else:
+            # The user must provide a valid direction
+            # either: North, South, East, or West, and the
+            # direction must be visible for the robot (i.e. in the 'directions' variable)
             user_action = user_action.lower()
             if user_action == 'north' and 'North' in directions:
                 self.moveBotToNode(directions['North'])
