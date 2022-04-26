@@ -263,16 +263,20 @@ class GameApp(tk.Tk):
         self.status = ttk.Label(self.status_bar)    # status bar label
         self.status.config(text="Status...")        # set the default status label text
 
+        healthbar_frame = ttk.Frame(self.status_bar)
         self.health_bar = ttk.Progressbar(
-            self.status_bar,
+            healthbar_frame,
             orient='horizontal',
             mode='indeterminate',
             # length=280
         )
+        ttk.Label(healthbar_frame, text='Health').pack(side='left')
+        self.health_bar.pack(side='left')
 
         # grid (pack) the status bar items
         self.status.grid(column=0, row=0)
-        self.health_bar.grid(column=1, row=0, sticky=tk.EW)
+        # self.health_bar.grid(column=1, row=0, sticky=tk.EW)
+        healthbar_frame.grid(column=1, row=0, sticky=tk.EW, padx=10, pady=5)
 
         """Game Board
         The game board has two items; the controls and the map
