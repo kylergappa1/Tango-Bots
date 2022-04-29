@@ -9,6 +9,8 @@ from PIL import Image, ImageTk
 import speech_recognition as sr
 import pyttsx3
 import threading
+import random
+from time import sleep
 
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(format='%(levelname)s: %(message)s', level=LOG_LEVEL)
@@ -27,7 +29,9 @@ GAME_1_DATA = {
         'position': (0, 1),
         'neighbors': set([3]),
         'event': {
-            'type': 'box'
+            'type': 'box',
+            'num': 1,
+            'open_event': 'game_over'
         }
     },
     3: {
@@ -41,14 +45,15 @@ GAME_1_DATA = {
         'position': (2, 1),
         'neighbors': set([3]),
         'event': {
-            'type': 'battle'
+            'type': 'battle',
+            'key': 1
         }
     },
     5: {
         'position': (1, 0),
         'neighbors': set([3]),
         'event': {
-            'type': 'restore_health'
+            'type': 'restore_health',
         }
     }
 }
@@ -188,26 +193,310 @@ class Node:
                     # dirs.append('South')
             elif neighbor.position.y == self.position.y:
                 if neighbor.position.x > self.position.x:
-                    directions_dict['West'] = neighbor
-                elif neighbor.position.x < self.position.x:
                     directions_dict['East'] = neighbor
+                elif neighbor.position.x < self.position.x:
+                    directions_dict['West'] = neighbor
 
         return directions_dict
+
+class Game(ttk.Frame):
+    """properties"""
+    active_node: Node               # reference to the current node that the robot is located at
+    robot_image: ImageTk.PhotoImage # image used to show the robot's location on the game board map
+    health_value: int
+
+    """constructor"""
+    def __init__(self, container):
+        super().__init__(container)
+        self.app: GameApp = container
+        self.buttons = dict()
+
+        # get the robot image
+        self.robot_image = fetchTkImage('./assets/robot.png', size=25)
+
+        # for i in range(2): self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(1, weight=1)
+
+        """Game Widgets
+
+        Status Bar -
+        Controls -
+        Game Board
+        """
+        self.status_bar_frame = ttk.Frame(self)
+        self.controls_frame = ttk.LabelFrame(self, text='Controls')
+        self.game_board_frame = ttk.Frame(self)
+
+
+        # Status Bar
+        # ------------------------------------------------------------
+        for i in range(2): self.status_bar_frame.columnconfigure(i, weight=1)
+        for i in range(1): self.status_bar_frame.rowconfigure(i, weight=1)
+
+        self.status_text_frame = ttk.LabelFrame(self.status_bar_frame, text='Status')
+        self.status_label = ttk.Label(self.status_text_frame)
+        self.status_label.config(text="...")        # set the default status label text
+        self.status_label.pack(expand=True, fill='both', padx=5, pady=5)
+
+        self.health_bar_frame = ttk.LabelFrame(self.status_bar_frame, text='Health')
+        self.health_bar = ttk.Progressbar(
+            self.health_bar_frame,
+            orient='horizontal',
+            mode='determinate',
+            # length=280
+        )
+        self.health_bar.config(value=100)
+        self.health_bar.pack(expand=True, fill='both', padx=5, pady=5)
+
+        # pack status bar (frames)
+        self.status_text_frame.grid(column=0, row=0, sticky=tk.NSEW, padx=5, pady=(0, 5))
+        self.health_bar_frame.grid(column=1, row=0, sticky=tk.NSEW, padx=(0,5), pady=(0,5))
+
+        # Controls
+        # ------------------------------------------------------------
+        # set the column weight for the controls frame
+        for i in range(3): self.controls_frame.columnconfigure(i, weight=1)
+        # Button data
+        btns_data = {
+            'play': {
+                'pos': (0, 0),
+                'options': {
+                    'columnspan': 3,
+                    'pady': 5
+                }
+            },
+            # 'stop': {
+            #     'pos': (0, 0),
+            #     'options': {
+            #         'columnspan': 3,
+            #         'pady': 5
+            #     }
+            # },
+            'up' : {
+                'pos': (1, 1)
+            },
+            'down' : {
+                'pos': (1, 3)
+            },
+            'left' : {
+                'pos': (0, 2)
+            },
+            'right' : {
+                'pos': (2, 2)
+            },
+        }
+        # create each of the buttons on the controls
+        for name, data in btns_data.items():
+            btn = ttk.Button(self.controls_frame, text=name)
+            btn_options = {
+                'column': data['pos'][0],
+                'row': data['pos'][1],
+                'sticky': tk.NSEW,
+                'columnspan': 1,
+                'rowspan': 1
+            }
+            if 'options' in data:
+                btn_options = {**btn_options, **data['options']}
+            btn.grid(**btn_options)
+            self.buttons[name] = btn
+
+        self.buttons['play'].config(command=lambda:self.app.playGame())
+        # self.buttons['play'].tkraise()
+
+        # Map (Gameboard playing field)
+        # ------------------------------------------------------------
+        # Note: the game map node's are populated when the game data is loaded
+        self.map_grid = ttk.Frame(self.game_board_frame)
+        self.__packMap()
+
+        self.status_bar_frame.grid(column=0, row=0, sticky=tk.EW, columnspan=2)
+        self.controls_frame.grid(column=0, row=1, sticky=tk.NSEW, padx=5, pady=(0, 5))
+        self.game_board_frame.grid(column=1, row=1, sticky=tk.NSEW, padx=(0,5), pady=(0, 5))
+
+        self.reset()
+
+    def reset(self):
+        self.active_node = None
+        self.health_value = 100
+        self.keys = list()
+        self.setHealthBarValue(100)
+        self.setStatusText('Playing...')
+
+
+    def setStatusText(self, txt):
+        self.status_label.config(text=txt)
+
+    def setHealthBarValue(self, val):
+        self.health_bar.config(value=val)
+
+    def __packMap(self):
+        self.map_grid.pack(expand=True, fill='both', side='left', padx=10, pady=10)
+
+    def moveBotToNode(self, node: Node):
+        # self.focus()
+        if isinstance(self.active_node, Node):
+            if isinstance(self.active_node.label, ttk.Label):
+                self.active_node.label.config(image='')
+        self.active_node = node
+        # set robot image on active node
+        self.active_node.label.config(image=self.robot_image)
+        directions = self.active_node.neighborDirections()
+        # disabled all buttons
+        move_btns = ['up', 'down', 'left', 'right']
+        for btn_name in move_btns:
+            self.buttons[btn_name].config(state=tk.DISABLED)
+        # Update the command bindings for the control buttons (Up, Down, Left, and Right)
+        if 'North' in directions:
+            self.buttons['up'].config(state='!DISABLED')
+            self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
+        if 'South' in directions:
+            self.buttons['down'].config(state='!DISABLED')
+            self.buttons['down'].config(command=lambda n = directions['South'] : self.moveBotToNode(n))
+        if 'West' in directions:
+            self.buttons['left'].config(state='!DISABLED')
+            self.buttons['left'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
+        if 'East' in directions:
+            self.buttons['right'].config(state='!DISABLED')
+            self.buttons['right'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
+        # make updates visible
+        # self.update_idletasks()
+        self.app.update()
+        self.__handleNodeEvent()
+        self.active_node.visited = True
+
+    def __handleNodeEvent(self):
+        if self.active_node.event is None:
+            return
+
+        event = self.active_node.event
+        event_type = event['type']
+
+        if event_type == 'battle' and self.active_node.visited is False:
+            # handle battle event
+            sleep(1)
+            self.__handleBattleEvent()
+        if event_type == 'box':
+            sleep(1)
+            self.__handleBoxEvent()
+        if event_type == 'restore_health' and self.active_node.visited is False:
+            sleep(1)
+            self.setHealthBarValue(100)
+            self.app.update_idletasks()
+            self.app.update()
+            # showinfo(title='Health Event', message='Your health has been fully restored!')
+            self.app.showMessage(text='Your health has been fully restored!')
+
+        if self.health_value < 1:
+            self.app.showMessage(text='Game Over!')
+            self.app.packGameOptions()
+            return
+
+        if 'key' in event and self.health_value >= 1 and self.active_node.visited is False:
+            # picked up a key
+            self.keys.append(event['key'])
+            self.app.showMessage(text='You found a key to open a box!')
+            # showinfo(title='Box Key', message='You found a key to open a box!')
+
+        self.setStatusText('Playing...')
+
+
+    def __handleBattleEvent(self):
+        self.setStatusText('Battling Enemy!')
+        self.map_grid.pack_forget()
+        self.app.showMessage(text='You encountered an enemy, prepare to fight!', timeout=2)
+        battle_frame = ttk.Frame(self.game_board_frame)
+        battle_frame.pack(expand=True, fill='both', side='left', padx=10, pady=10)
+
+        battle_label = ttk.Label(battle_frame, text='Battle')
+        member_turn_label = ttk.Label(battle_frame, text="Your Turn!")
+        enemy_health_bar = ttk.Progressbar(
+            battle_frame,
+            style="red.Horizontal.TProgressbar",
+            orient='horizontal',
+            mode='determinate',
+            value=100
+            # length=280
+        )
+
+        battle_label.pack()
+        member_turn_label.pack()
+        enemy_health_bar.pack()
+
+        enemy_health = 100
+        robot_hit_turn = True
+
+        self.app.update_idletasks()
+        self.app.update()
+        sleep(1)
+        while enemy_health >= 1 and self.health_value >= 1:
+            hit_damage = 0
+            if robot_hit_turn is True:
+                max_hit = 60
+                diff = abs(100 - self.health_value)
+                max_hit -= diff
+                if max_hit < 20: max_hit = 20
+                hit_damage = random.randint(15, max_hit)
+            else:
+                hit_damage = random.randint(15, 30)
+                # hit_damage = 1
+
+            # deal damage
+            if robot_hit_turn is True:
+                enemy_health -= hit_damage
+                enemy_health_bar.config(value=enemy_health)
+                member_turn_label.config(text='Your Turn')
+            else:
+                self.health_value -= hit_damage
+                self.setHealthBarValue(self.health_value)
+                member_turn_label.config(text='Enemy\'s Turn')
+
+            # switch turns
+            if robot_hit_turn is True:
+                robot_hit_turn = False
+            else:
+                robot_hit_turn = True
+
+            print(f"Robot Health - {self.health_value}")
+            print(f"Enemy Health - {enemy_health}")
+
+            self.app.update_idletasks()
+            self.app.update()
+            sleep(0.5)
+
+        if self.health_value >= 1:
+            # robot won
+            self.app.showMessage(text='You Won!')
+        else:
+            self.app.showMessage(text='The enemy defeated you!')
+        battle_frame.destroy()
+        self.__packMap()
+
+    def __handleBoxEvent(self):
+        event = self.active_node.event
+        box_num = event['num']
+
+        if box_num in self.keys:
+            self.app.showMessage(text='You have the key to open the box', timeout=2)
+        else:
+            self.app.showMessage(text='I see a box, you have no key', timeout=2)
+
+        if 'open_event' in event and box_num in self.keys:
+            if event['open_event'] == 'game_over':
+                self.app.showMessage(title='Game Over!', text='You Win!')
+                self.app.packGameOptions()
+
+
 
 """GameApp
 tkinter app for the game
 """
 class GameApp(tk.Tk):
     """properties"""
-    game_board: ttk.Frame           # container frame for the controls and map frames.
-    map_grid: ttk.Frame             # a frame the holds all of the node widgets. The node widgets are what make up the paths on the game board.
-    controls: ttk.Frame             # frame to house button controls (used to navigate the game board)
-    status: ttk.Label               # A label used to send updates to the user
-    buttons: dict                   # list of buttons on the controls frame
+    game_board: Game                # container frame for the controls and map frames.
     nodes_dict: dict                # dictionary of available nodes within the game
     neighbor_bridges_dict: dict     # nodes have 1 space between them, this dictionary stores the widgets that make up the bridges the connect neightboring nodes
-    active_node: Node               # reference to the current node that the robot is located at
-    robot_image: ImageTk.PhotoImage # image used to show the robot's location on the game board map
+    frames: dict
 
     """constructor"""
     def __init__(self):
@@ -216,9 +505,6 @@ class GameApp(tk.Tk):
         self.buttons = dict()
         self.nodes_dict = dict()
         self.neighbor_bridges_dict = dict()
-        self.active_node = None
-        # get the robot image
-        self.robot_image = fetchTkImage('./assets/robot.png', size=25)
 
         """tkinter app settings
         - title
@@ -247,106 +533,48 @@ class GameApp(tk.Tk):
         self.style.configure('.', font=('Helvetica', 12), background='white')
         self.style.configure('NodeWidget.TFrame', background='yellow')
         self.style.configure('NodeLabel.TLabel', background='yellow', foreground='black')
+        self.style.configure("red.Horizontal.TProgressbar", foreground='red', background='red')
 
-        """App Widgets
-        there are three main content areas within the game window
+        self.game_board = Game(self)
 
-        -----------------------
-        | Status Bar          |
-        ----------------------|
-        | Controls | Game Map |
-        -----------------------
-        """
-        # Status Bar
-        # ------------------------------------------------------------
-        self.status_bar = ttk.Frame(self)           # status bar frame
-        status_frame = ttk.LabelFrame(self.status_bar, text='Status')
-        self.status = ttk.Label(status_frame)    # status bar label
-        self.status.config(text="Status")        # set the default status label text
-        self.status.pack()
-        status_frame.grid(column=0, row=0)
+        self.message_frame = ttk.Frame(self)
+        self.message_title = ttk.Label(self.message_frame, font=('Helvetica', 15))
+        self.message_text = ttk.Label(self.message_frame, text='Message')
+        self.message_title.pack(expand=True)
+        self.message_text.pack(expand=True)
 
-        healthbar_frame = ttk.LabelFrame(self.status_bar, text='Health')
-        self.health_bar = ttk.Progressbar(
-            healthbar_frame,
-            orient='horizontal',
-            mode='indeterminate',
-            # length=280
-        )
-        self.health_bar.pack(side='left')
+        self.game_options_frame = ttk.Frame(self)
+        game_1_button = ttk.Button(self.game_options_frame, text='Game 1', command=lambda : self.loadGame(GAME_1_DATA))
+        game_1_button.pack(expand=True)
+        self.packGameOptions()
 
-        # grid (pack) the status bar items
-        # self.status.grid(column=0, row=0)
-        # self.health_bar.grid(column=1, row=0, sticky=tk.EW)
-        healthbar_frame.grid(column=1, row=0, sticky=tk.EW, padx=10, pady=5)
-
-        """Game Board
-        The game board has two items; the controls and the map
-        """
-        self.game_board = ttk.Frame(self)
-
-        # Controls
-        # ------------------------------------------------------------
-        self.controls = ttk.LabelFrame(self.game_board, text='Controls')
-        self.controls.pack(side='left', fill='y', padx=10, pady=10, ipadx=10, ipady=10)
-        # set the column weight for the controls frame
-        for i in range(3): self.controls.columnconfigure(i, weight=1)
-        # Button data
-        btns_data = {
-            'play': {
-                'pos': (0, 0),
-                'options': {
-                    'columnspan': 3,
-                    'pady': 5
-                }
-            },
-            'stop': {
-                'pos': (0, 0),
-                'options': {
-                    'columnspan': 3,
-                    'pady': 5
-                }
-            },
-            'up' : {
-                'pos': (1, 1)
-            },
-            'down' : {
-                'pos': (1, 3)
-            },
-            'left' : {
-                'pos': (0, 2)
-            },
-            'right' : {
-                'pos': (2, 2)
-            },
-        }
-        # create each of the buttons on the controls
-        for name, data in btns_data.items():
-            btn = ttk.Button(self.controls, text=name)
-            btn_options = {
-                'column': data['pos'][0],
-                'row': data['pos'][1],
-                'sticky': tk.NSEW,
-                'columnspan': 1,
-                'rowspan': 1
-            }
-            if 'options' in data:
-                btn_options = {**btn_options, **data['options']}
-            btn.grid(**btn_options)
-            self.buttons[name] = btn
-
-        self.buttons['play'].config(command=lambda:self.playGame())
-        self.buttons['play'].tkraise()
-
-        # Map (Gameboard playing field)
-        # ------------------------------------------------------------
-        # Note: the game map node's are populated when the game data is loaded
-        self.map_grid = ttk.Frame(self.game_board)
-        self.map_grid.pack(expand=True, fill='both', side='left', padx=10, pady=10)
-
-        # pack the status bar and the game board
-        self.status_bar.pack(fill='x')
+    def packGameBoard(self):
+        self.game_options_frame.pack_forget()
+        self.message_frame.pack_forget()
         self.game_board.pack(expand=True, fill='both')
+
+    def packGameOptions(self):
+        self.game_board.pack_forget()
+        self.message_frame.pack_forget()
+        self.game_options_frame.pack(expand=True, fill='both')
+
+    def showMessage(self, text, title: str = None, timeout = 2):
+        self.game_options_frame.pack_forget()
+        self.game_board.pack_forget()
+        self.message_title.pack_forget()
+        self.message_text.pack_forget()
+        self.message_text.config(text=text)
+        if title is not None:
+            self.message_title.pack(expand=True)
+            self.message_title.config(text=title)
+        self.message_text.pack(expand=True)
+        self.message_frame.pack(expand=True, fill='both')
+        self.update()
+        # sleep(timeout)
+        self.speak(text)
+        self.packGameBoard()
+        self.update()
+
 
     @property
     def screen_width(self):
@@ -356,9 +584,11 @@ class GameApp(tk.Tk):
     def screen_height(self):
         return self.winfo_screenheight()
 
+    def update(self):
+        self.update_idletasks()
+        super().update()
 
     def run(self):
-        self.update_idletasks()
         self.update()
         self.mainloop()
 
@@ -394,7 +624,7 @@ class GameApp(tk.Tk):
                 recognizer.adjust_for_ambient_noise(source, 0.5)
                 # APP_INST.update_idletasks()
                 # APP_INST.update()
-                self.status.config(text="Listening...")
+                self.game_board.setStatusText("Listening...")
                 self.update_idletasks()
                 self.update()
                 audio = recognizer.listen(source, timeout=5, phrase_time_limit=2)
@@ -402,7 +632,7 @@ class GameApp(tk.Tk):
             return None
         # try recognizing the speech in the recording
         # if a RequestError or UnknownValueError exception is caught
-        self.status.config(text="Transcribing input...")
+        self.game_board.setStatusText("Transcribing input...")
         self.update_idletasks()
         self.update()
         transcription = None
@@ -417,7 +647,13 @@ class GameApp(tk.Tk):
             print("Unknown word")
         return transcription
 
+    @property
+    def map_grid(self):
+        return self.game_board.map_grid
+
     def loadGame(self, DATA):
+
+        self.game_board.reset()
 
         self.nodes_dict = dict()
         max_x = 0
@@ -502,25 +738,36 @@ class GameApp(tk.Tk):
         for i in range((max_x*2)+1): self.map_grid.columnconfigure(i, weight=1)
         for i in range((max_y*2)+1): self.map_grid.rowconfigure(i, weight=1)
 
-        self.moveBotToNode(self.nodes_dict[1])
+
+        self.game_board.moveBotToNode(self.nodes_dict[1])
+
+        self.game_board.controls_frame.grid_forget()
+        self.packGameBoard()
+        self.update()
+        sleep(2)
+        self.playGame()
 
     def playGame(self):
+        # self.game_board.buttons['play'].grid_forget()
+        self.game_board.controls_frame.grid_forget()
+        self.game_board.game_board_frame.grid_forget()
+        self.game_board.game_board_frame.grid(column=0, row=1, sticky=tk.NSEW, padx=(0,5), pady=(0, 5), columnspan=2)
 
         # make sure active node is available
-        if self.active_node is None:
-            self.moveBotToNode(self.nodes_dict[1])
+        if self.game_board.active_node is None:
+            self.game_board.moveBotToNode(self.nodes_dict[1])
 
         # update status
-        self.status.config(text="Playing Game")
-        self.update_idletasks()
-        self.update()
+        self.game_board.setStatusText("Playing Game")
+        # self.update_idletasks()
+        # self.update()
 
         # disable play button and raise stop button
-        self.buttons['stop'].tkraise()
-        self.buttons['stop'].config(state='!DISABLED')
-        self.buttons['play'].config(state=tk.DISABLED)
+        # self.buttons['stop'].tkraise()
+        # self.buttons['stop'].config(state='!DISABLED')
+        # self.buttons['play'].config(state=tk.DISABLED)
 
-        directions = self.active_node.neighborDirections()
+        directions = self.game_board.active_node.neighborDirections()
 
         # Build the text prompt for the robot to speak to the user
         # There are 2 options
@@ -534,7 +781,8 @@ class GameApp(tk.Tk):
         else:
             prompt_text = f"I see a path to the {direction_words[0]}, do you want to continue?"
         # print(prompt_text)
-        self.speak(prompt_text)
+        self.showMessage(prompt_text)
+        # self.speak(prompt_text)
 
         # get user input (speech)
         # while True:
@@ -542,8 +790,13 @@ class GameApp(tk.Tk):
         # no audio was picket up, transcription failed
         if not isinstance(user_action, str):
             log.debug('Audio transcription from mic failed.')
-            self.status.config(text="Audio transcription from mic failed.")
-            self.update_idletasks()
+            # self.showMessage('Audio transcription from mic failed.')
+            self.game_board.setStatusText("Audio transcription from mic failed.")
+            # self.game_board.buttons['play'].grid(column=0, row=0, columnspan=3, pady=5, sticky=tk.NSEW)
+            self.game_board.controls_frame.grid_forget()
+            self.game_board.game_board_frame.grid_forget()
+            self.game_board.controls_frame.grid(column=0, row=1, sticky=tk.NSEW, padx=5, pady=(0, 5))
+            self.game_board.game_board_frame.grid(column=1, row=1, sticky=tk.NSEW, padx=(0,5), pady=(0, 5))
             self.update()
         else:
             # determine what the user said...
@@ -551,61 +804,21 @@ class GameApp(tk.Tk):
             # if there is only one visible direction, then the user must
             # answer 'yes' to proceed'
             if len(direction_words) == 1 and user_action.lower() == 'yes':
-                self.moveBotToNode(directions[direction_words[0]])
+                self.game_board.moveBotToNode(directions[direction_words[0]])
             else:
                 # The user must provide a valid direction
                 # either: North, South, East, or West, and the
                 # direction must be visible for the robot (i.e. in the 'directions' variable)
                 user_action = user_action.lower()
                 if user_action == 'north' and 'North' in directions:
-                    self.moveBotToNode(directions['North'])
+                    self.game_board.moveBotToNode(directions['North'])
                 elif user_action == 'south' and 'South' in directions:
-                    self.moveBotToNode(directions['South'])
+                    self.game_board.moveBotToNode(directions['South'])
                 elif user_action == 'east' and 'East' in directions:
-                    self.moveBotToNode(directions['East'])
+                    self.game_board.moveBotToNode(directions['East'])
                 elif user_action == 'west' and 'West' in directions:
-                    self.moveBotToNode(directions['West'])
+                    self.game_board.moveBotToNode(directions['West'])
             self.playGame()
-
-        # disable stop button and raise play button
-        self.buttons['play'].tkraise()
-        self.buttons['play'].config(state='!DISABLED')
-        self.buttons['stop'].config(state=tk.DISABLED)
-
-    def moveBotToNode(self, node: Node):
-        self.focus()
-        if isinstance(self.active_node, Node):
-            if isinstance(self.active_node.label, ttk.Label):
-                self.active_node.label.config(image='')
-        self.active_node = node
-        # set robot image on active node
-        self.active_node.label.config(image=self.robot_image)
-        directions = self.active_node.neighborDirections()
-        # disabled all buttons
-        move_btns = ['up', 'down', 'left', 'right']
-        for btn_name in move_btns:
-            self.buttons[btn_name].config(state=tk.DISABLED)
-        # Update the command bindings for the control buttons (Up, Down, Left, and Right)
-        if 'North' in directions:
-            self.buttons['up'].config(state='!DISABLED')
-            self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
-        if 'South' in directions:
-            self.buttons['down'].config(state='!DISABLED')
-            self.buttons['down'].config(command=lambda n = directions['South'] : self.moveBotToNode(n))
-        if 'East' in directions:
-            self.buttons['left'].config(state='!DISABLED')
-            self.buttons['left'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
-        if 'West' in directions:
-            self.buttons['right'].config(state='!DISABLED')
-            self.buttons['right'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
-        # make updates visible
-        self.update_idletasks()
-        self.update()
-
-        # TODO - process event
-
-        self.active_node.visited = True
-
 
 def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = None):
     img = Image.open(file)
@@ -619,7 +832,7 @@ def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = No
 
 def runApp():
     app = GameApp()
-    app.loadGame(GAME_1_DATA)
+    # app.loadGame(GAME_1_DATA)
     # app.playGame()
     app.run()
     sys.exit(0)
