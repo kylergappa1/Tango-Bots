@@ -364,7 +364,7 @@ class Game(ttk.Frame):
         if 'East' in directions:
             self.buttons['right'].config(state='!DISABLED')
             self.buttons['right'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
-        bot.increaseWheelSpeed(2)
+        bot.increaseWheelSpeed(3)
         sleep(.5)
         bot.stop()
         # make updates visible
