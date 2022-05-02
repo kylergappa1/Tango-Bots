@@ -22,6 +22,8 @@ class BotServos(Enum):
     Waist = 0x02
     HeadPan = 0x03
     HeadTilt = 0x04
+    Shoulder = 0x05
+    Elbow = 0x06
 
 class DirectionState(Enum):
     Forwards = 'Forwards'
@@ -43,6 +45,7 @@ class TangBotController:
     _WAIST: int                     # This is the left/right value for the (body) waist
     _WHEEL_SPEED: int               # Speed of the forward/backward movement
     _DIRECTION_STATE: DirectionState = DirectionState.Forwards
+    _ARM: int
 
     # constructor
     def __init__(self):
@@ -273,5 +276,11 @@ class TangBotController:
         # self.writeCmd(BotServos.RightWheel, 4600)
         sleep(.5)
         self.stop()
+
+    def moveArm(self):
+        self.writeCmd(BotServos.Elbow, 7500)
+        sleep(.5)
+        self.writeCmd(BotServos.Elbow, self.TARGET_CENTER)
+
 
 # END

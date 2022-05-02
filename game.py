@@ -353,9 +353,7 @@ class Game(ttk.Frame):
         move_btns = ['up', 'down', 'left', 'right']
         for btn_name in move_btns:
             self.buttons[btn_name].config(state=tk.DISABLED)
-        def getDir(newDir):
-            if self.direction is None:
-                return
+        def getDir(newDir, n):
             if self.direction == 'North':
                 if newDir == 'West':
                     bot.turnLeft()
@@ -364,7 +362,6 @@ class Game(ttk.Frame):
                     bot.turnLeft()
                 if newDir == 'East':
                     bot.turnRight()
-                return
             if self.direction == 'West':
                 if newDir == 'North':
                     bot.turnRight()
@@ -373,7 +370,6 @@ class Game(ttk.Frame):
                 if newDir == 'East':
                     bot.turnRight()
                     bot.turnRight()
-                return
             if self.direction == 'South':
                 if newDir == 'North':
                     bot.turnRight()
@@ -382,7 +378,6 @@ class Game(ttk.Frame):
                     bot.turnRight()
                 if newDir == 'East':
                     bot.turnLeft()
-                return
             if self.direction == 'East':
                 if newDir == 'North':
                     bot.turnLeft()
@@ -391,30 +386,24 @@ class Game(ttk.Frame):
                 if newDir == 'West':
                     bot.turnRight()
                     bot.turnRight()
-                return
+            self.moveBotToNode(n)
+            self.direction = newDir
 # Update the command bindings for the control buttons (Up, Down, Left, and Right)
         if 'North' in directions:
             self.buttons['up'].config(state='!DISABLED')
-            self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
-            getDir('North')
-            self.direction = 'North'
+            self.buttons['up'].config(command=lambda n=directions['North'] : getDir('North', n))
         if 'South' in directions:
             self.buttons['down'].config(state='!DISABLED')
-            self.buttons['down'].config(command=lambda n = directions['South'] : self.moveBotToNode(n))
-            getDir('South')
-            self.direction = 'South'
+            self.buttons['down'].config(command=lambda n = directions['South'] : getDir('South', n))
         if 'West' in directions:
             self.buttons['left'].config(state='!DISABLED')
-            self.buttons['left'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
-            getDir('West')
-            self.direction = 'West'
+            self.buttons['left'].config(command=lambda n = directions['West'] : getDir('West', n))
         if 'East' in directions:
             self.buttons['right'].config(state='!DISABLED')
-            self.buttons['right'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
-            getDir('East')
-            self.direction = 'East'
+            self.buttons['right'].config(command=lambda n = directions['East'] : getDir('East', n))
 
-        bot.increaseWheelSpeed(3)
+        if self.direction is not None:
+            bot.increaseWheelSpeed(3)
         sleep(.5)
         bot.stop()
         # make updates visible
@@ -502,6 +491,7 @@ class Game(ttk.Frame):
 
             # deal damage
             if robot_hit_turn is True:
+                bot.moveArm()
                 enemy_health -= hit_damage
                 enemy_health_bar.config(value=enemy_health)
                 member_turn_label.config(text='Your Turn')
