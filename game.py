@@ -209,12 +209,14 @@ class Game(ttk.Frame):
     active_node: Node               # reference to the current node that the robot is located at
     robot_image: ImageTk.PhotoImage # image used to show the robot's location on the game board map
     health_value: int
+    direction: str
 
     """constructor"""
     def __init__(self, container):
         super().__init__(container)
         self.app: GameApp = container
         self.buttons = dict()
+        self.direction = None
 
         # get the robot image
         self.robot_image = fetchTkImage('./assets/robot.png', size=25)
@@ -351,19 +353,61 @@ class Game(ttk.Frame):
         move_btns = ['up', 'down', 'left', 'right']
         for btn_name in move_btns:
             self.buttons[btn_name].config(state=tk.DISABLED)
-        # Update the command bindings for the control buttons (Up, Down, Left, and Right)
+        def getDir(newDir):
+            if self.direction == 'North':
+                if newDir == 'West':
+                    bot.turnLeft()
+                if newDir == 'South':
+                    bot.turnLeft()
+                    bot.turnLeft()
+                if newDir == 'East':
+                    bot.turnRight()
+            if self.direction == 'West':
+                if newDir == 'North':
+                    bot.turnRight()
+                if newDir == 'South':
+                    bot.turnLeft()
+                if newDir == 'East':
+                    bot.turnRight()
+                    bot.turnRight()
+            if self.direction == 'South':
+                if newDir == 'North':
+                    bot.turnRight()
+                    bot.turnRight()
+                if newDir == 'West':
+                    bot.turnRight()
+                if newDir == 'East':
+                    bot.turnLeft()
+            if self.direction == 'East':
+                if newDir == 'North':
+                    bot.turnLeft()
+                if newDir == 'South':
+                    bot.turnRight()
+                if newDir == 'West':
+                    bot.turnRight()
+                    bot.turnRight()
+                    # Update the command bindings for the control buttons (Up, Down, Left, and Right)
         if 'North' in directions:
             self.buttons['up'].config(state='!DISABLED')
             self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
+            getDir('North')
+            self.direction = 'North'
         if 'South' in directions:
             self.buttons['down'].config(state='!DISABLED')
             self.buttons['down'].config(command=lambda n = directions['South'] : self.moveBotToNode(n))
+            getDir('South')
+            self.direction = 'South'
         if 'West' in directions:
             self.buttons['left'].config(state='!DISABLED')
             self.buttons['left'].config(command=lambda n = directions['West'] : self.moveBotToNode(n))
+            getDir('West')
+            self.direction = 'West'
         if 'East' in directions:
             self.buttons['right'].config(state='!DISABLED')
             self.buttons['right'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
+            getDir('East')
+            self.direction = 'East'
+
         bot.increaseWheelSpeed(3)
         sleep(.5)
         bot.stop()
