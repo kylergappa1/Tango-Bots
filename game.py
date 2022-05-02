@@ -354,6 +354,8 @@ class Game(ttk.Frame):
         for btn_name in move_btns:
             self.buttons[btn_name].config(state=tk.DISABLED)
         def getDir(newDir):
+            if self.direction is None:
+                return
             if self.direction == 'North':
                 if newDir == 'West':
                     bot.turnLeft()
@@ -362,6 +364,7 @@ class Game(ttk.Frame):
                     bot.turnLeft()
                 if newDir == 'East':
                     bot.turnRight()
+                return
             if self.direction == 'West':
                 if newDir == 'North':
                     bot.turnRight()
@@ -370,6 +373,7 @@ class Game(ttk.Frame):
                 if newDir == 'East':
                     bot.turnRight()
                     bot.turnRight()
+                return
             if self.direction == 'South':
                 if newDir == 'North':
                     bot.turnRight()
@@ -378,6 +382,7 @@ class Game(ttk.Frame):
                     bot.turnRight()
                 if newDir == 'East':
                     bot.turnLeft()
+                return
             if self.direction == 'East':
                 if newDir == 'North':
                     bot.turnLeft()
@@ -386,7 +391,8 @@ class Game(ttk.Frame):
                 if newDir == 'West':
                     bot.turnRight()
                     bot.turnRight()
-                    # Update the command bindings for the control buttons (Up, Down, Left, and Right)
+                return
+# Update the command bindings for the control buttons (Up, Down, Left, and Right)
         if 'North' in directions:
             self.buttons['up'].config(state='!DISABLED')
             self.buttons['up'].config(command=lambda n = directions['North'] : self.moveBotToNode(n))
@@ -832,6 +838,8 @@ class GameApp(tk.Tk):
             prompt_text = ', '.join(list(directions.keys())[:-1])
             prompt_text = f"I see a path to the {prompt_text}, and {direction_words[-1]}, which way do you want to go?"
         else:
+            if self.game_board.direction is None:
+                self.game_board.direction = direction_words[0]
             prompt_text = f"I see a path to the {direction_words[0]}, do you want to continue?"
         # print(prompt_text)
         self.showMessage(prompt_text)
