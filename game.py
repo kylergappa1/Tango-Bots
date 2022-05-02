@@ -382,6 +382,7 @@ class Game(ttk.Frame):
         if event_type == 'restore_health' and self.active_node.visited is False:
             sleep(1)
             self.setHealthBarValue(100)
+            self.health_value = 100
             self.app.update_idletasks()
             self.app.update()
             # showinfo(title='Health Event', message='Your health has been fully restored!')
