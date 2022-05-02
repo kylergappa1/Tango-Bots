@@ -216,7 +216,7 @@ class Game(ttk.Frame):
         super().__init__(container)
         self.app: GameApp = container
         self.buttons = dict()
-        self.direction = None
+        self.direction = 'South'
 
         # get the robot image
         self.robot_image = fetchTkImage('./assets/robot.png', size=25)
@@ -329,6 +329,7 @@ class Game(ttk.Frame):
         self.keys = list()
         self.setHealthBarValue(100)
         self.setStatusText('Playing...')
+        self.direction = 'South'
 
 
     def setStatusText(self, txt):
