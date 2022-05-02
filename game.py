@@ -439,7 +439,7 @@ class Game(ttk.Frame):
                 if max_hit < 20: max_hit = 20
                 hit_damage = random.randint(15, max_hit)
             else:
-                hit_damage = random.randint(15, 30)
+                hit_damage = random.randint(1, 30)
                 # hit_damage = 1
 
             # deal damage
