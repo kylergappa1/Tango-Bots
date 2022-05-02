@@ -358,33 +358,49 @@ class Game(ttk.Frame):
             if self.direction == 'North':
                 if newDir == 'West':
                     bot.turnLeft()
+                    bot.turnLeft()
                 if newDir == 'South':
                     bot.turnLeft()
                     bot.turnLeft()
+                    bot.turnLeft()
+                    bot.turnLeft()
                 if newDir == 'East':
+                    bot.turnRight()
                     bot.turnRight()
             if self.direction == 'West':
                 if newDir == 'North':
                     bot.turnRight()
+                    bot.turnRight()
                 if newDir == 'South':
                     bot.turnLeft()
+                    bot.turnLeft()
                 if newDir == 'East':
+                    bot.turnRight()
+                    bot.turnRight()
                     bot.turnRight()
                     bot.turnRight()
             if self.direction == 'South':
                 if newDir == 'North':
                     bot.turnRight()
                     bot.turnRight()
+                    bot.turnRight()
+                    bot.turnRight()
                 if newDir == 'West':
                     bot.turnRight()
+                    bot.turnRight()
                 if newDir == 'East':
+                    bot.turnLeft()
                     bot.turnLeft()
             if self.direction == 'East':
                 if newDir == 'North':
                     bot.turnLeft()
+                    bot.turnLeft()
                 if newDir == 'South':
                     bot.turnRight()
+                    bot.turnRight()
                 if newDir == 'West':
+                    bot.turnRight()
+                    bot.turnRight()
                     bot.turnRight()
                     bot.turnRight()
             self.moveBotToNode(n)
