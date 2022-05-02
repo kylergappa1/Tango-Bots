@@ -403,8 +403,12 @@ class Game(ttk.Frame):
                     bot.turnRight()
                     bot.turnRight()
                     bot.turnRight()
+            bot.increaseWheelSpeed(3)
+            sleep(.25)
+            bot.stop()
             self.moveBotToNode(n)
             self.direction = newDir
+
 # Update the command bindings for the control buttons (Up, Down, Left, and Right)
         if 'North' in directions:
             self.buttons['up'].config(state='!DISABLED')
@@ -419,10 +423,6 @@ class Game(ttk.Frame):
             self.buttons['right'].config(state='!DISABLED')
             self.buttons['right'].config(command=lambda n = directions['East'] : getDir('East', n))
 
-        if self.direction is not None:
-            bot.increaseWheelSpeed(3)
-        sleep(.5)
-        bot.stop()
         # make updates visible
         # self.update_idletasks()
         self.app.update()
