@@ -874,18 +874,73 @@ class GameApp(tk.Tk):
             if len(direction_words) == 1 and user_action.lower() == 'yes':
                 self.game_board.moveBotToNode(directions[direction_words[0]])
             else:
+                def getDir(newDir, n):
+                    if self.direction == 'North':
+                        if newDir == 'West':
+                            bot.turnLeft()
+                            bot.turnLeft()
+                        if newDir == 'South':
+                            bot.turnLeft()
+                            bot.turnLeft()
+                            bot.turnLeft()
+                            bot.turnLeft()
+                        if newDir == 'East':
+                            bot.turnRight()
+                            bot.turnRight()
+                    if self.direction == 'West':
+                        if newDir == 'North':
+                            bot.turnRight()
+                            bot.turnRight()
+                        if newDir == 'South':
+                            bot.turnLeft()
+                            bot.turnLeft()
+                        if newDir == 'East':
+                            bot.turnRight()
+                            bot.turnRight()
+                            bot.turnRight()
+                            bot.turnRight()
+                    if self.direction == 'South':
+                        if newDir == 'North':
+                            bot.turnRight()
+                            bot.turnRight()
+                            bot.turnRight()
+                            bot.turnRight()
+                        if newDir == 'West':
+                            bot.turnRight()
+                            bot.turnRight()
+                        if newDir == 'East':
+                            bot.turnLeft()
+                            bot.turnLeft()
+                    if self.direction == 'East':
+                        if newDir == 'North':
+                            bot.turnLeft()
+                            bot.turnLeft()
+                        if newDir == 'South':
+                            bot.turnRight()
+                            bot.turnRight()
+                        if newDir == 'West':
+                            bot.turnRight()
+                            bot.turnRight()
+                            bot.turnRight()
+                            bot.turnRight()
+                    bot.increaseWheelSpeed(3)
+                    sleep(.25)
+                    bot.stop()
+                    self.game_board.moveBotToNode(n)
+                    self.game_board.direction = newDir
+
                 # The user must provide a valid direction
                 # either: North, South, East, or West, and the
                 # direction must be visible for the robot (i.e. in the 'directions' variable)
                 user_action = user_action.lower()
                 if user_action == 'north' and 'North' in directions:
-                    self.game_board.moveBotToNode(directions['North'])
+                    getDir('North', directions['North'])
                 elif user_action == 'south' and 'South' in directions:
-                    self.game_board.moveBotToNode(directions['South'])
+                    getDir('South', directions['South'])
                 elif user_action == 'east' and 'East' in directions:
-                    self.game_board.moveBotToNode(directions['East'])
+                    getDir('East', directions['East'])
                 elif user_action == 'west' and 'West' in directions:
-                    self.game_board.moveBotToNode(directions['West'])
+                    getDir('West', directions['West'])
             self.playGame()
 
 def fetchTkImage(file: str, size: int = 20, rotate: float = None, transpose = None):
