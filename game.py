@@ -11,10 +11,15 @@ import pyttsx3
 import threading
 import random
 from time import sleep
+from src.tango_bot import TangBotController
+
+bot:TangBotController = TangBotController()
 
 LOG_LEVEL = logging.DEBUG
 logging.basicConfig(format='%(levelname)s: %(message)s', level=LOG_LEVEL)
 log = logging
+
+
 
 recognizer: sr.Recognizer = sr.Recognizer()
 microphone: sr.Microphone = sr.Microphone()
@@ -359,6 +364,9 @@ class Game(ttk.Frame):
         if 'East' in directions:
             self.buttons['right'].config(state='!DISABLED')
             self.buttons['right'].config(command=lambda n = directions['East'] : self.moveBotToNode(n))
+        bot.increaseWheelSpeed(2)
+        sleep(.5)
+        bot.stop()
         # make updates visible
         # self.update_idletasks()
         self.app.update()
@@ -515,7 +523,7 @@ class GameApp(tk.Tk):
         # title
         self.title("TangoBot Game")
         self.config(bg='white')
-        # override defaule protocol - make the top right close button
+        # override default protocol - make the top right close button
         self.protocol('WM_DELETE_WINDOW', self.stop)
         """set the window geometry"""
         # get the screen dimension
